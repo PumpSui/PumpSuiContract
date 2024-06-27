@@ -31,6 +31,7 @@ module suifund::suifund {
     const EInvalidAmount: u64 = 12;
     const ENotSplitable: u64 = 13;
     const EProjectCanceled: u64 = 14;
+    const ENotBurnable: u64 = 15;
 
     // ======== Types =========
     public struct SUIFUND has drop {}
@@ -108,6 +109,14 @@ module suifund::suifund {
         project_name: std::ascii::String,
         sender: address,
         amount: u64,
+    }
+
+    public struct BurnEvent has copy, drop {
+        project_name: std::ascii::String,
+        sender: address,
+        amount: u64,
+        withdraw_value: u64,
+        inside_value: u64,
     }
 
     public struct ReferenceReward has copy, drop {
@@ -457,6 +466,75 @@ module suifund::suifund {
     ) {
         let new_sp_rwd= do_split(sp_rwd, amount, ctx);
         transfer::public_transfer(new_sp_rwd, ctx.sender());
+    }
+
+    // ======= Burn functions ========
+
+    public fun do_burn(
+        project_record: &mut ProjectRecord,
+        sp_rwd: SupporterReward,
+        clk: &Clock,
+        ctx: &mut TxContext
+    ): Coin<SUI> {
+        assert!(project_record.name == sp_rwd.name, ENotSameProject);
+        assert!(sp_rwd.attach_df == 0, ENotBurnable);
+
+        let sender = ctx.sender();
+        let now = clock::timestamp_ms(clk);
+
+        let total_value = if (project_record.cancel) {
+            balance::value<SUI>(&project_record.balance)
+        } else {
+            get_remain_value(
+                mul_div(project_record.current_supply, SUI_BASE, project_record.amount_per_sui),
+                project_record.start_time_ms, 
+                project_record.end_time_ms, 
+                now
+            )
+        };
+
+        let withdraw_value = mul_div(total_value, sp_rwd.amount, project_record.current_supply);
+        let inside_value = balance::value<SUI>(&sp_rwd.balance);
+
+        project_record.current_supply = project_record.current_supply - sp_rwd.amount;
+
+        let SupporterReward {
+            id,
+            name,
+            image_url: _,
+            amount,
+            balance,
+            start: _,
+            end: _,
+            attach_df: _
+        } = sp_rwd;
+
+        let withdraw_balance: Balance<SUI> = balance::split<SUI>(&mut project_record.balance, withdraw_value);
+        let mut withdraw_coin: Coin<SUI> = coin::from_balance<SUI>(withdraw_balance, ctx);
+        let inside_coin: Coin<SUI> = coin::from_balance<SUI>(balance, ctx);
+        coin::join<SUI>(&mut withdraw_coin, inside_coin);
+
+        object::delete(id);
+
+        emit(BurnEvent {
+            project_name: name,
+            sender,
+            amount,
+            withdraw_value,
+            inside_value,
+        });
+
+        withdraw_coin
+    }
+
+    public entry fun burn(
+        project_record: &mut ProjectRecord,
+        sp_rwd: SupporterReward,
+        clk: &Clock,
+        ctx: &mut TxContext
+    ) {
+        let withdraw_coin = do_burn(project_record, sp_rwd, clk, ctx);
+        transfer::public_transfer(withdraw_coin, ctx.sender());
     }
 
     // ======= Edit ProjectRecord functions ========
