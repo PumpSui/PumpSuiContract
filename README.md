@@ -1,0 +1,1 @@
+An anti-rug Crowd Funding Platform to Support Creative Developers in Sui Community.
