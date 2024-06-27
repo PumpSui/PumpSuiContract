@@ -116,6 +116,12 @@ module suifund::suifund {
         value: u64,
     }
 
+    public struct ClaimStreamPayment has copy, drop {
+        project_name: std::ascii::String,
+        sender: address,
+        value: u64,
+    }
+
 
     // ======== Functions =========
     fun init(_otw: SUIFUND, ctx: &mut TxContext) {
@@ -274,11 +280,32 @@ module suifund::suifund {
         project_admin_cap: &ProjectAdminCap,
         clk: &Clock,
         ctx: &mut TxContext
-    ) {
+    ): Coin<SUI> {
         check_project_cap(project_record, project_admin_cap);
         assert!(!project_record.cancel, EProjectCanceled);
 
+        let now = clock::timestamp_ms(clk);
         let init_value = mul_div(project_record.current_supply, SUI_BASE, project_record.amount_per_sui);
+        let remain_value = get_remain_value(init_value, project_record.start_time_ms, project_record.end_time_ms, now);
+        let claim_value = balance::value<SUI>(&project_record.balance) - remain_value;
+
+        emit(ClaimStreamPayment {
+            project_name: project_record.name,
+            sender: ctx.sender(),
+            value: claim_value,
+        });
+
+        coin::take<SUI>(&mut project_record.balance, claim_value, ctx)
+    }
+
+    public entry fun claim(
+        project_record: &mut ProjectRecord,
+        project_admin_cap: &ProjectAdminCap,
+        clk: &Clock,
+        ctx: &mut TxContext
+    ) {
+        let claim_coin = do_claim(project_record, project_admin_cap, clk, ctx);
+        transfer::public_transfer(claim_coin, ctx.sender());
     }
 
     // ======= Mint functions ========
