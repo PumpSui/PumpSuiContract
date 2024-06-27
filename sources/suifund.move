@@ -32,6 +32,7 @@ module suifund::suifund {
     const ENotSplitable: u64 = 13;
     const EProjectCanceled: u64 = 14;
     const ENotBurnable: u64 = 15;
+    const EVersionMismatch: u64 = 16;
 
     // ======== Types =========
     public struct SUIFUND has drop {}
@@ -220,6 +221,7 @@ module suifund::suifund {
         clk: &Clock,
         ctx: &mut TxContext
     ): ProjectAdminCap {
+        assert!(deploy_record.version == VERSION, EVersionMismatch);
         let sender = ctx.sender();
         let now = clock::timestamp_ms(clk);
         assert!(start_time_ms >= now, EInvalidStartTime);
@@ -290,6 +292,7 @@ module suifund::suifund {
         clk: &Clock,
         ctx: &mut TxContext
     ): Coin<SUI> {
+        assert!(project_record.version == VERSION, EVersionMismatch);
         check_project_cap(project_record, project_admin_cap);
         assert!(!project_record.cancel, EProjectCanceled);
 
@@ -339,6 +342,7 @@ module suifund::suifund {
         let now = clock::timestamp_ms(clk);
         assert!(now >= project_record.start_time_ms, ENotStarted);
         assert!(now <= project_record.end_time_ms, EEnded);
+        assert!(project_record.version == VERSION, EVersionMismatch);
 
         let mut sui_value = coin::value(fee_sui);
         assert!(sui_value >= project_record.min_value_sui, ETooLittle);
@@ -477,6 +481,7 @@ module suifund::suifund {
         ctx: &mut TxContext
     ): Coin<SUI> {
         assert!(project_record.name == sp_rwd.name, ENotSameProject);
+        assert!(project_record.version == VERSION, EVersionMismatch);
         assert!(sp_rwd.attach_df == 0, ENotBurnable);
 
         let sender = ctx.sender();
