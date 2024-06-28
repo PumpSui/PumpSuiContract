@@ -1,4 +1,5 @@
 module suifund::suifund {
+    use std::type_name;
     use sui::balance::{Self, Balance};
     use sui::coin::{Self, Coin};
     use sui::table::{Self, Table};
@@ -9,6 +10,9 @@ module suifund::suifund {
     use sui::display;
     use sui::url::{Self, Url};
     use sui::clock::{Self, Clock};
+    use sui::dynamic_field as df;
+    use sui_system::staking_pool::StakedSui;
+    use sui_system::sui_system::{request_add_stake_non_entry, SuiSystemState, request_withdraw_stake_non_entry};
     use suifund::comment::{new_comment, Comment};
     use suifund::utils::{mul_div, get_remain_value};
     use suifund::svg::generateSVG;
@@ -572,6 +576,9 @@ module suifund::suifund {
         transfer::public_transfer(withdraw_coin, ctx.sender());
     }
 
+    // ======= Native Stake functions ========
+
+
     // ======= Edit ProjectRecord functions ========
 
     public entry fun add_comment(
@@ -823,6 +830,32 @@ module suifund::suifund {
 
     fun check_project_cap(project_record: &ProjectRecord, project_admin_cap: &ProjectAdminCap) {
         assert!(object::id(project_record)==project_admin_cap.to, ECapMismatch);
+    }
+
+    fun add_df_with_attach<Value: store>(
+        sp_rwd: &mut SupporterReward,
+        value: Value
+    ) {
+        let name = type_name::into_string(type_name::get_with_original_ids<Value>());
+        sp_rwd.attach_df = sp_rwd.attach_df + 1;
+        df::add(&mut sp_rwd.id, name, value);
+    }
+
+    fun remove_df_with_attach<Value: store>(
+        sp_rwd: &mut SupporterReward
+    ): Value {
+        let name = type_name::into_string(type_name::get_with_original_ids<Value>());
+        // assert attach_coin > 0
+        sp_rwd.attach_df = sp_rwd.attach_df - 1;
+        let value: Value = df::remove<std::ascii::String, Value>(&mut sp_rwd.id, name);
+        value
+    }
+
+    fun exists_df<Value: store>(
+        sp_rwd: &SupporterReward
+    ): bool {
+        let name = type_name::into_string(type_name::get_with_original_ids<Value>());
+        df::exists_with_type<std::ascii::String, Value>(&sp_rwd.id, name)
     }
 
     fun new_supporter_reward(
