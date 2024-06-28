@@ -578,6 +578,28 @@ module suifund::suifund {
 
     // ======= Native Stake functions ========
 
+    public entry fun native_stake(
+        wrapper: &mut SuiSystemState,
+        validator_address: address,
+        sp_rwd: &mut SupporterReward,
+        ctx: &mut TxContext
+    ) {
+        let sui_value = balance::value(&sp_rwd.balance);
+        let to_stake: Coin<SUI> = coin::take(&mut sp_rwd.balance, sui_value, ctx);
+        let staked_sui = request_add_stake_non_entry(wrapper, to_stake, validator_address, ctx);
+        add_df_with_attach(sp_rwd, staked_sui);
+    }
+
+    public entry fun native_unstake(
+        wrapper: &mut SuiSystemState,
+        sp_rwd: &mut SupporterReward,
+        ctx: &mut TxContext
+    ) {
+        // assert staked before
+        let staked_sui = remove_df_with_attach<StakedSui>(sp_rwd);
+        let sui = request_withdraw_stake_non_entry(wrapper, staked_sui, ctx);
+        balance::join(&mut sp_rwd.balance, sui);
+    }
 
     // ======= Edit ProjectRecord functions ========
 
@@ -851,6 +873,7 @@ module suifund::suifund {
         value
     }
 
+    #[allow(unused_function)]
     fun exists_df<Value: store>(
         sp_rwd: &SupporterReward
     ): bool {
