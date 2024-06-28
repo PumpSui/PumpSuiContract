@@ -7,6 +7,8 @@ module suifund::utils {
     public fun get_remain_value(init_value: u64, start_time: u64, end_time: u64, now_ms: u64): u64 {
         if (now_ms >= end_time) {
             0
+        } else if (now_ms <= start_time) {
+            init_value
         } else {
             mul_div(init_value, (end_time - now_ms), (end_time - start_time))
         }
