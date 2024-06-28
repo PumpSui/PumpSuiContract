@@ -4,6 +4,12 @@ module suifund::utils_test {
     #[test]
     #[expected_failure]
     fun test_div_by_zero() {
-        let res = utils::mul_div(100, 2, 0);
+        let _res = utils::mul_div(100, 2, 0);
+    }
+
+    #[test]
+    fun test_mul_div() {
+        assert!(utils::mul_div(100, 2, 5) == 40, 1);
+        assert!(utils::mul_div(256_000, 6, 3) == 512_000, 1);
     }
 }

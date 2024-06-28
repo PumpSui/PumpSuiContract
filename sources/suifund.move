@@ -946,7 +946,7 @@ module suifund::suifund {
 
     #[test_only]
     public fun drop_sp_rwd_for_testing(sp_rwd: SupporterReward) {
-        let SupporterReward { id, name: _, image_url: _, amount: _, balance, start: _, end: _ } = sp_rwd;
+        let SupporterReward { id, name: _, image_url: _, amount: _, balance, start: _, end: _, attach_df: _ } = sp_rwd;
         balance::destroy_for_testing(balance);
         object::delete(id);
     }
@@ -1028,7 +1028,7 @@ module suifund::suifund {
             max_value_sui: _,
             participants,
             minted_per_user,
-            thread: table_vec::empty<Comment>(ctx),
+            mut thread,
         } = project_record;
 
         balance::destroy_for_testing<SUI>(balance);
