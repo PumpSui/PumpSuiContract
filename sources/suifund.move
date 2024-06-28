@@ -49,6 +49,7 @@ module suifund::suifund {
         version: u64,
         record: Table<std::ascii::String, ID>,
         balance: Balance<SUI>,
+        base_fee: u64,
     }
 
     public struct ProjectRecord has key {
@@ -143,7 +144,7 @@ module suifund::suifund {
     // ======== Functions =========
     fun init(otw: SUIFUND, ctx: &mut TxContext) {
         let deployer = ctx.sender();
-        let deploy_record = DeployRecord { id: object::new(ctx), version: VERSION, record: table::new(ctx), balance: balance::zero<SUI>() };
+        let deploy_record = DeployRecord { id: object::new(ctx), version: VERSION, record: table::new(ctx), balance: balance::zero<SUI>(), base_fee: BASE_FEE };
         transfer::share_object(deploy_record);
         let admin_cap = AdminCap { id: object::new(ctx) };
         transfer::public_transfer(admin_cap, deployer);
@@ -180,12 +181,13 @@ module suifund::suifund {
 
     public fun get_deploy_fee(
         total_deposit_sui: u64,
+        base_fee: u64,
         ratio: u64
     ): u64 {
         let cal_value: u64 = total_deposit_sui * ratio / 10000;
-        let fee_value: u64 =  if (cal_value > BASE_FEE) {
+        let fee_value: u64 =  if (cal_value > base_fee) {
             cal_value
-        } else {BASE_FEE};
+        } else { base_fee };
         fee_value
     }
 
@@ -266,7 +268,7 @@ module suifund::suifund {
             assert!(min_value_sui <= max_value_sui, EInvalidSuiValue);
         };
 
-        let deploy_fee = get_deploy_fee(total_deposit_sui, ratio);
+        let deploy_fee = get_deploy_fee(total_deposit_sui, deploy_record.base_fee, ratio);
         let deploy_coin = coin::split<SUI>(fee, deploy_fee, ctx);
         balance::join<SUI>(&mut deploy_record.balance, coin::into_balance<SUI>(deploy_coin));
 
@@ -811,9 +813,21 @@ module suifund::suifund {
         project_admin_cap.to
     }
 
+    // ======= Admin functions ========
     // In case of ProjectAdminCap is lost
     public fun cancel_project(_: &AdminCap, project_record: &mut ProjectRecord) {
         project_record.cancel = true;
+    }
+
+    public fun set_base_fee(_: &AdminCap, deploy_record: &mut DeployRecord, base_fee: u64) {
+        deploy_record.base_fee = base_fee;
+    }
+
+    #[allow(lint(self_transfer))]
+    public fun withdraw_balance(_: &AdminCap, deploy_record: &mut DeployRecord, ctx: &mut TxContext) {
+        let sui_value = balance::value<SUI>(&deploy_record.balance);
+        let coin = coin::take<SUI>(&mut deploy_record.balance, sui_value, ctx);
+        transfer::public_transfer(coin, ctx.sender());
     }
 
     // ======= SupporterReward Get functions ========
@@ -900,6 +914,26 @@ module suifund::suifund {
             end,
             attach_df: 0,
         }
+    }
+
+    // ========= Test Functions =========
+
+    #[test_only]
+    public fun init_for_testing(ctx: &mut TxContext) {
+        init(SUIFUND{}, ctx);
+    }
+
+    #[test_only]
+    public fun new_sp_rwd_for_testing(
+        name: std::ascii::String,
+        image_url: Url,
+        amount: u64,
+        balance: Balance<SUI>,
+        start: u64,
+        end: u64,
+        ctx: &mut TxContext
+    ): SupporterReward {
+        new_supporter_reward(name, image_url, amount, balance, start, end, ctx)
     }
 
 }
