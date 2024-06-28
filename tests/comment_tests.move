@@ -1,3 +1,4 @@
+#[test_only]
 module suifund::comment_tests {
     use sui::clock;
     use suifund::comment;
