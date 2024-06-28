@@ -1,3 +1,4 @@
 Move.lock
 /build
 .DS_Store
+*.svg

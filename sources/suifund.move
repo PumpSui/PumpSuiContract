@@ -5,10 +5,13 @@ module suifund::suifund {
     use sui::table_vec::{Self, TableVec};
     use sui::event::emit;
     use sui::sui::SUI;
+    use sui::package;
+    use sui::display;
     use sui::url::{Self, Url};
     use sui::clock::{Self, Clock};
     use suifund::comment::{new_comment, Comment};
     use suifund::utils::{mul_div, get_remain_value};
+    use suifund::svg::generateSVG;
 
     // ======== Constants =========
     const VERSION: u64 = 1;
@@ -134,12 +137,39 @@ module suifund::suifund {
 
 
     // ======== Functions =========
-    fun init(_otw: SUIFUND, ctx: &mut TxContext) {
-        let sender = ctx.sender();
+    fun init(otw: SUIFUND, ctx: &mut TxContext) {
+        let deployer = ctx.sender();
         let deploy_record = DeployRecord { id: object::new(ctx), version: VERSION, record: table::new(ctx), balance: balance::zero<SUI>() };
         transfer::share_object(deploy_record);
         let admin_cap = AdminCap { id: object::new(ctx) };
-        transfer::public_transfer(admin_cap, sender);
+        transfer::public_transfer(admin_cap, deployer);
+
+        let keys = vector[
+            std::string::utf8(b"name"),
+            std::string::utf8(b"image_url"),
+            std::string::utf8(b"project_url"),
+            std::string::utf8(b"start"),
+            std::string::utf8(b"end"),
+        ];
+        let background_url = b"{image_url}";
+        let project_name = b"{name}";
+        let amount = b"{amount}";
+        let image_url = generateSVG(background_url, project_name, amount);
+        let values = vector[
+            std::string::utf8(b"Supporter Ticket"),
+            std::string::utf8(image_url),
+            std::string::utf8(b""),
+            std::string::utf8(b"{start}"),
+            std::string::utf8(b"{end}"),
+        ];
+
+        let publisher = package::claim(otw, ctx);
+        let mut display = display::new_with_fields<SupporterReward>(
+            &publisher, keys, values, ctx
+        );
+        display::update_version(&mut display);
+        transfer::public_transfer(publisher, deployer);
+        transfer::public_transfer(display, deployer);
     }
 
     // ======= Deploy functions ========
