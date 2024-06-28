@@ -13,7 +13,7 @@ module suifund::suifund {
     use sui::dynamic_field as df;
     use sui_system::staking_pool::StakedSui;
     use sui_system::sui_system::{request_add_stake_non_entry, SuiSystemState, request_withdraw_stake_non_entry};
-    use suifund::comment::{new_comment, Comment};
+    use suifund::comment::{Self, Comment};
     use suifund::utils::{mul_div, get_remain_value};
     use suifund::svg::generateSVG;
 
@@ -40,6 +40,7 @@ module suifund::suifund {
     const EProjectCanceled: u64 = 14;
     const ENotBurnable: u64 = 15;
     const EVersionMismatch: u64 = 16;
+    const EImproperRatio: u64 = 17;
 
     // ======== Types =========
     public struct SUIFUND has drop {}
@@ -50,6 +51,7 @@ module suifund::suifund {
         record: Table<std::ascii::String, ID>,
         balance: Balance<SUI>,
         base_fee: u64,
+        ratio: u64,
     }
 
     public struct ProjectRecord has key {
@@ -144,7 +146,7 @@ module suifund::suifund {
     // ======== Functions =========
     fun init(otw: SUIFUND, ctx: &mut TxContext) {
         let deployer = ctx.sender();
-        let deploy_record = DeployRecord { id: object::new(ctx), version: VERSION, record: table::new(ctx), balance: balance::zero<SUI>(), base_fee: BASE_FEE };
+        let deploy_record = DeployRecord { id: object::new(ctx), version: VERSION, record: table::new(ctx), balance: balance::zero<SUI>(), base_fee: BASE_FEE, ratio: 100 };
         transfer::share_object(deploy_record);
         let admin_cap = AdminCap { id: object::new(ctx) };
         transfer::public_transfer(admin_cap, deployer);
@@ -182,9 +184,11 @@ module suifund::suifund {
     public fun get_deploy_fee(
         total_deposit_sui: u64,
         base_fee: u64,
-        ratio: u64
+        project_ratio: u64,
+        deploy_ratio: u64
     ): u64 {
-        let cal_value: u64 = total_deposit_sui * ratio / 10000;
+        assert!(deploy_ratio <= 5, EImproperRatio);
+        let cal_value: u64 = total_deposit_sui * project_ratio * deploy_ratio / 10000;
         let fee_value: u64 =  if (cal_value > base_fee) {
             cal_value
         } else { base_fee };
@@ -268,7 +272,7 @@ module suifund::suifund {
             assert!(min_value_sui <= max_value_sui, EInvalidSuiValue);
         };
 
-        let deploy_fee = get_deploy_fee(total_deposit_sui, deploy_record.base_fee, ratio);
+        let deploy_fee = get_deploy_fee(total_deposit_sui, deploy_record.base_fee, ratio, deploy_record.ratio);
         let deploy_coin = coin::split<SUI>(fee, deploy_fee, ctx);
         balance::join<SUI>(&mut deploy_record.balance, coin::into_balance<SUI>(deploy_coin));
 
@@ -613,7 +617,7 @@ module suifund::suifund {
         clk: &Clock,
         ctx: &mut TxContext
     ) {
-        let comment = new_comment(reply, media_link, content, clk, ctx);
+        let comment = comment::new_comment(reply, media_link, content, clk, ctx);
         table_vec::push_back<Comment>(&mut project_record.thread, comment);
     }
 
@@ -823,6 +827,10 @@ module suifund::suifund {
         deploy_record.base_fee = base_fee;
     }
 
+    public fun set_ratio(_: &AdminCap, deploy_record: &mut DeployRecord, ratio: u64) {
+        deploy_record.ratio = ratio;
+    }
+
     #[allow(lint(self_transfer))]
     public fun withdraw_balance(_: &AdminCap, deploy_record: &mut DeployRecord, ctx: &mut TxContext) {
         let sui_value = balance::value<SUI>(&deploy_record.balance);
@@ -934,6 +942,105 @@ module suifund::suifund {
         ctx: &mut TxContext
     ): SupporterReward {
         new_supporter_reward(name, image_url, amount, balance, start, end, ctx)
+    }
+
+    #[test_only]
+    public fun drop_sp_rwd_for_testing(sp_rwd: SupporterReward) {
+        let SupporterReward { id, name: _, image_url: _, amount: _, balance, start: _, end: _ } = sp_rwd;
+        balance::destroy_for_testing(balance);
+        object::delete(id);
+    }
+
+    #[test_only]
+    public fun new_project_record_for_testing(
+        name: vector<u8>,
+        description: vector<u8>,
+        image_url: vector<u8>,
+        x: vector<u8>,
+        telegram: vector<u8>,
+        discord: vector<u8>,
+        website: vector<u8>,
+        github: vector<u8>,
+        ratio: u64,
+        start_time_ms: u64,
+        time_interval: u64,
+        total_supply: u64,
+        amount_per_sui: u64,
+        min_value_sui: u64,
+        max_value_sui: u64,
+        ctx: &mut TxContext
+    ): ProjectRecord {
+        ProjectRecord {
+            id: object::new(ctx),
+            version: VERSION,
+            creator: ctx.sender(),
+            name: std::ascii::string(name),
+            description: std::string::utf8(description),
+            image_url: url::new_unsafe_from_bytes(image_url),
+            x: url::new_unsafe_from_bytes(x),
+            telegram: url::new_unsafe_from_bytes(telegram),
+            discord: url::new_unsafe_from_bytes(discord),
+            website: url::new_unsafe_from_bytes(website),
+            github: url::new_unsafe_from_bytes(github),
+            cancel: false,
+            balance: balance::zero<SUI>(),
+            ratio,
+            start_time_ms,
+            end_time_ms: start_time_ms + time_interval,
+            total_supply,
+            amount_per_sui,
+            remain: total_supply,
+            current_supply: 0,
+            total_transactions: 0,
+            min_value_sui,
+            max_value_sui,
+            participants: table_vec::empty<address>(ctx),
+            minted_per_user: table::new<address, u64>(ctx),
+            thread: table_vec::empty<Comment>(ctx),
+        }
+    }
+
+    #[test_only]
+    public fun drop_project_record_for_testing(project_record: ProjectRecord) {
+        let ProjectRecord {
+            id,
+            version: _,
+            creator: _,
+            name: _,
+            description: _,
+            image_url: _,
+            x: _,
+            telegram: _,
+            discord: _,
+            website: _,
+            github: _,
+            cancel: _,
+            balance,
+            ratio: _,
+            start_time_ms: _,
+            end_time_ms: _,
+            total_supply: _,
+            amount_per_sui: _,
+            remain: _,
+            current_supply: _,
+            total_transactions: _,
+            min_value_sui: _,
+            max_value_sui: _,
+            participants,
+            minted_per_user,
+            thread: table_vec::empty<Comment>(ctx),
+        } = project_record;
+
+        balance::destroy_for_testing<SUI>(balance);
+        table_vec::drop<address>(participants);
+        table::drop<address, u64>(minted_per_user);
+
+        while (table_vec::length<Comment>(&thread) > 0) {
+            let comment = table_vec::pop_back<Comment>(&mut thread);
+            comment::drop_comment(comment);
+        };
+        table_vec::destroy_empty<Comment>(thread);
+        object::delete(id);
     }
 
 }

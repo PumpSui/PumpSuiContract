@@ -29,5 +29,17 @@ module suifund::comment {
         }
     }
 
+    public fun drop_comment(comment: Comment) {
+        let Comment {
+            id,
+            reply: _,
+            creator: _,
+            media_link: _,
+            content: _,
+            timestamp: _,
+        } = comment;
+        object::delete(id);
+    }
+
 
 }
