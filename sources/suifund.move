@@ -409,7 +409,7 @@ module suifund::suifund {
 
         let mut amount: u64 = mul_div(sui_value, project_record.amount_per_sui, SUI_BASE);
 
-        if (amount > project_record.remain) {
+        if (amount >= project_record.remain) {
             amount = project_record.remain;
             sui_value = mul_div(amount, SUI_BASE, project_record.amount_per_sui);
         };
