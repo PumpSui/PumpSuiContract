@@ -297,7 +297,6 @@ module suifund::project_record_tests {
         test_scenario::next_tx(scenario, alice);
         {
             let mut test_coin = coin::mint_for_testing<SUI>(total_deposit_sui + 123, test_scenario::ctx(scenario));
-            std::debug::print<coin::Coin<SUI>>(&test_coin);
             suifund::mint(&mut project_record, &mut test_coin, &clk, test_scenario::ctx(scenario));
             assert!(coin::burn_for_testing<SUI>(test_coin) == 123, 1);
         };
