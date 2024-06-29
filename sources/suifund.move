@@ -394,13 +394,13 @@ module suifund::suifund {
 
         if (table::contains<address, u64>(&project_record.minted_per_user, sender)) {
             let minted_value = table::borrow_mut<address, u64>(&mut project_record.minted_per_user, sender);
-            if (sui_value + *minted_value > project_record.max_value_sui) {
+            if (project_record.max_value_sui > 0 && sui_value + *minted_value > project_record.max_value_sui) {
                 sui_value = project_record.max_value_sui - *minted_value;
             };
             assert!(sui_value > 0, EAlreadyMax);
             *minted_value = *minted_value + sui_value;
         } else {
-            if (sui_value > project_record.max_value_sui) {
+            if (project_record.max_value_sui > 0 && sui_value > project_record.max_value_sui) {
                 sui_value = project_record.max_value_sui;
             };
             table::add<address, u64>(&mut project_record.minted_per_user, sender, sui_value);
@@ -978,12 +978,13 @@ module suifund::suifund {
         ratio: u64,
         start_time_ms: u64,
         time_interval: u64,
-        total_supply: u64,
+        total_deposit_sui: u64,
         amount_per_sui: u64,
         min_value_sui: u64,
         max_value_sui: u64,
         ctx: &mut TxContext
     ): ProjectRecord {
+        let total_supply = total_deposit_sui / SUI_BASE * amount_per_sui;
         ProjectRecord {
             id: object::new(ctx),
             version: VERSION,
