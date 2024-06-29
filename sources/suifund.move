@@ -41,6 +41,8 @@ module suifund::suifund {
     const ENotBurnable: u64 = 15;
     const EVersionMismatch: u64 = 16;
     const EImproperRatio: u64 = 17;
+    const EProjectNotCanceled: u64 = 18;
+    const ETakeAwayNotCompleted: u64 = 19;
 
     // ======== Types =========
     public struct SUIFUND has drop {}
@@ -385,6 +387,7 @@ module suifund::suifund {
         assert!(now >= project_record.start_time_ms, ENotStarted);
         assert!(now <= project_record.end_time_ms, EEnded);
         assert!(project_record.version == VERSION, EVersionMismatch);
+        assert!(!project_record.cancel, EProjectCanceled);
 
         let mut sui_value = coin::value(fee_sui);
         assert!(sui_value >= project_record.min_value_sui, ETooLittle);
@@ -823,6 +826,15 @@ module suifund::suifund {
     // In case of ProjectAdminCap is lost
     public fun cancel_project(_: &AdminCap, project_record: &mut ProjectRecord) {
         project_record.cancel = true;
+    }
+
+    #[allow(lint(self_transfer))]
+    public fun take_remain(_: &AdminCap, project_record: &mut ProjectRecord, ctx: &mut TxContext) {
+        assert!(project_record.cancel, EProjectNotCanceled);
+        assert!(project_record.current_supply == 0, ETakeAwayNotCompleted);
+        let sui_value = balance::value<SUI>(&project_record.balance);
+        let remain = coin::take<SUI>(&mut project_record.balance, sui_value, ctx);
+        transfer::public_transfer(remain, ctx.sender());
     }
 
     public fun set_base_fee(_: &AdminCap, deploy_record: &mut DeployRecord, base_fee: u64) {
