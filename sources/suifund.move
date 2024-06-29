@@ -313,6 +313,8 @@ module suifund::suifund {
             to: project_id,
         };
 
+        table::add<std::ascii::String, ID>(&mut deploy_record.record, project_name, project_id);
+
         transfer::share_object(project_record);
         emit(DeployEvent {
             project_id,
