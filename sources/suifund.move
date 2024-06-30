@@ -148,7 +148,7 @@ module suifund::suifund {
     // ======== Functions =========
     fun init(otw: SUIFUND, ctx: &mut TxContext) {
         let deployer = ctx.sender();
-        let deploy_record = DeployRecord { id: object::new(ctx), version: VERSION, record: table::new(ctx), balance: balance::zero<SUI>(), base_fee: BASE_FEE, ratio: 100 };
+        let deploy_record = DeployRecord { id: object::new(ctx), version: VERSION, record: table::new(ctx), balance: balance::zero<SUI>(), base_fee: BASE_FEE, ratio: 1 };
         transfer::share_object(deploy_record);
         let admin_cap = AdminCap { id: object::new(ctx) };
         transfer::public_transfer(admin_cap, deployer);
@@ -341,7 +341,8 @@ module suifund::suifund {
         assert!(!project_record.cancel, EProjectCanceled);
 
         let now = clock::timestamp_ms(clk);
-        let init_value = mul_div(project_record.current_supply, SUI_BASE, project_record.amount_per_sui);
+        let mut init_value = mul_div(project_record.current_supply, SUI_BASE, project_record.amount_per_sui);
+        init_value = init_value * project_record.ratio / 100;
         let remain_value = get_remain_value(init_value, project_record.start_time_ms, project_record.end_time_ms, now);
         let claim_value = balance::value<SUI>(&project_record.balance) - remain_value;
 
