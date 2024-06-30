@@ -843,6 +843,7 @@ module suifund::suifund {
     }
 
     public fun set_ratio(_: &AdminCap, deploy_record: &mut DeployRecord, ratio: u64) {
+        assert!(ratio <= 5, EImproperRatio);
         deploy_record.ratio = ratio;
     }
 
