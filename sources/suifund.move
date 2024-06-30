@@ -627,6 +627,24 @@ module suifund::suifund {
         table_vec::push_back<Comment>(&mut project_record.thread, comment);
     }
 
+    public entry fun like_comment(
+        project_record: &mut ProjectRecord,
+        idx: u64,
+        ctx: &TxContext
+    ) {
+        let comment_bm = table_vec::borrow_mut(&mut project_record.thread, idx);
+        comment::like_comment(comment_bm, ctx);
+    }
+
+    public entry fun unlike_comment(
+        project_record: &mut ProjectRecord,
+        idx: u64,
+        ctx: &TxContext
+    ) {
+        let comment_bm = table_vec::borrow_mut(&mut project_record.thread, idx);
+        comment::unlike_comment(comment_bm, ctx);
+    }
+
     public entry fun edit_description(
         project_record: &mut ProjectRecord, 
         project_admin_cap: &ProjectAdminCap,
