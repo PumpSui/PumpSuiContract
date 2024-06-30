@@ -335,7 +335,7 @@ module suifund::project_record_tests {
         let github = b"";
         let ratio: u64 = 50;
         let start_time_ms: u64 = 1000;
-        let time_interval: u64 = 300_000_000;
+        let time_interval: u64 = 500_000_000;
         let total_deposit_sui: u64 = 1_000_000_000_000;
         let amount_per_sui: u64 = 1_000;
         let min_value_sui: u64 = 1_000_000_000;
@@ -385,6 +385,20 @@ module suifund::project_record_tests {
             let claim_coin = suifund::do_claim(&mut project_record, &project_admin_cap, &clk, test_scenario::ctx(scenario));
             assert!(coin::burn_for_testing(claim_coin) == 0, 11);
             test_scenario::return_to_sender(scenario, project_admin_cap);
+            test_scenario::return_shared(project_record);
+        };
+
+        clock::increment_for_testing(&mut clk, 100_000_000);
+        test_scenario::next_tx(scenario, bob);
+        {
+            let mut project_record = test_scenario::take_shared<suifund::ProjectRecord>(scenario);
+            let supporter_reward = test_scenario::take_from_sender<suifund::SupporterReward>(scenario);
+            let burn_coin = suifund::do_burn(&mut project_record, supporter_reward, &clk, test_scenario::ctx(scenario));
+            let receive_value = coin::burn_for_testing<SUI>(burn_coin);
+            assert!(receive_value == 90_000_000_000, 12);
+            assert!(suifund::project_current_supply(&project_record) == 0, 13);
+            assert!(suifund::project_remain(&project_record) == 900_000, 14);
+            assert!(suifund::project_balance_value(&project_record) == 10_000_000_000, 15);
             test_scenario::return_shared(project_record);
         };
 

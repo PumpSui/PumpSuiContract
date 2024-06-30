@@ -541,7 +541,7 @@ module suifund::suifund {
                 project_record.start_time_ms, 
                 project_record.end_time_ms, 
                 now
-            )
+            ) * project_record.ratio / 100
         };
 
         let withdraw_value = mul_div(total_value, sp_rwd.amount, project_record.current_supply);
