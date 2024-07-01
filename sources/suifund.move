@@ -514,7 +514,7 @@ module suifund::suifund {
         amount: u64,
         ctx: &mut TxContext
     ) {
-        let new_sp_rwd= do_split(sp_rwd, amount, ctx);
+        let new_sp_rwd = do_split(sp_rwd, amount, ctx);
         transfer::public_transfer(new_sp_rwd, ctx.sender());
     }
 
