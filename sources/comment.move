@@ -1,8 +1,10 @@
 module suifund::comment {
     use std::string::{String, utf8};
-    use sui::url::{Self, Url};
-    use sui::clock::{Self, Clock};
-    use sui::vec_set::{Self, VecSet};
+    use sui::{
+        url::{Self, Url},
+        clock::{Self, Clock},
+        vec_set::{Self, VecSet}
+    };
 
     public struct Comment has key, store {
         id: UID,

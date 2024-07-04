@@ -1,21 +1,27 @@
 module suifund::suifund {
     use std::type_name;
-    use sui::balance::{Self, Balance};
-    use sui::coin::{Self, Coin};
-    use sui::table::{Self, Table};
-    use sui::table_vec::{Self, TableVec};
-    use sui::event::emit;
-    use sui::sui::SUI;
-    use sui::package;
-    use sui::display;
-    use sui::url::{Self, Url};
-    use sui::clock::{Self, Clock};
-    use sui::dynamic_field as df;
-    use sui_system::staking_pool::StakedSui;
-    use sui_system::sui_system::{request_add_stake_non_entry, SuiSystemState, request_withdraw_stake_non_entry};
-    use suifund::comment::{Self, Comment};
-    use suifund::utils::{mul_div, get_remain_value};
-    use suifund::svg::generateSVG;
+    use sui::{
+        coin::{Self, Coin},
+        table::{Self, Table},
+        table_vec::{Self, TableVec},
+        event::emit,
+        sui::SUI,
+        package,
+        display,
+        balance::{Self, Balance},
+        url::{Self, Url},
+        clock::{Self, Clock},
+        dynamic_field as df
+    };
+    use sui_system::{
+        staking_pool::StakedSui,
+        sui_system::{SuiSystemState, request_add_stake_non_entry, request_withdraw_stake_non_entry}
+    };
+    use suifund::{
+        comment::{Self, Comment},
+        utils::{mul_div, get_remain_value},
+        svg::generateSVG
+    };
 
     // ======== Constants =========
     const VERSION: u64 = 1;
