@@ -97,6 +97,7 @@ module suifund::suifund {
     public struct SupporterReward has key, store {
         id: UID,
         name: std::ascii::String,
+        project_id: ID,
         image_url: Url,
         amount: u64,
         balance: Balance<SUI>,
@@ -165,10 +166,12 @@ module suifund::suifund {
         let project_name = b"{name}";
         let amount = b"{amount}";
         let image_url = generateSVG(background_url, project_name, amount);
+        let mut project_url: vector<u8> = b"";
+        vector::append(&mut project_url, b"{project_id}");
         let values = vector[
             std::string::utf8(b"Supporter Ticket"),
             std::string::utf8(image_url),
-            std::string::utf8(b""),
+            std::string::utf8(project_url),
             std::string::utf8(b"{start}"),
             std::string::utf8(b"{end}"),
             std::string::utf8(b"Do not visit any links in the pictures, as they may be scams."),
@@ -436,6 +439,7 @@ module suifund::suifund {
         let locked_sui = coin::into_balance<SUI>(coin::split<SUI>(fee_sui, locked_sui_value, ctx));
         new_supporter_reward(
             project_record.name,
+            object::id(project_record),
             project_record.image_url,
             amount,
             locked_sui,
@@ -463,7 +467,7 @@ module suifund::suifund {
         assert!(sp_rwd_1.name == sp_rwd_2.name, ENotSameProject);
         assert!(sp_rwd_2.attach_df == 0, ErrorAttachDFExists);
         
-        let SupporterReward { id, name: _, image_url: _, amount, balance, start: _, end: _, attach_df: _ } = sp_rwd_2;
+        let SupporterReward { id, name: _, project_id: _, image_url: _, amount, balance, start: _, end: _, attach_df: _ } = sp_rwd_2;
         sp_rwd_1.amount = sp_rwd_1.amount + amount;
         balance::join<SUI>(&mut sp_rwd_1.balance, balance);
         object::delete(id);
@@ -502,6 +506,7 @@ module suifund::suifund {
 
         new_supporter_reward(
             sp_rwd.name,
+            sp_rwd.project_id,
             sp_rwd.image_url,
             amount,
             new_sui_balance,
@@ -554,6 +559,7 @@ module suifund::suifund {
         let SupporterReward {
             id,
             name,
+            project_id: _,
             image_url: _,
             amount,
             balance,
@@ -908,7 +914,7 @@ module suifund::suifund {
         supporter_reward.image_url = project_record.image_url;
     }
 
-    fun check_project_cap(project_record: &ProjectRecord, project_admin_cap: &ProjectAdminCap) {
+    public fun check_project_cap(project_record: &ProjectRecord, project_admin_cap: &ProjectAdminCap) {
         assert!(object::id(project_record)==project_admin_cap.to, ECapMismatch);
     }
 
@@ -941,6 +947,7 @@ module suifund::suifund {
 
     fun new_supporter_reward(
         name: std::ascii::String,
+        project_id: ID,
         image_url: Url,
         amount: u64,
         balance: Balance<SUI>,
@@ -951,6 +958,7 @@ module suifund::suifund {
         SupporterReward {
             id: object::new(ctx),
             name,
+            project_id,
             image_url,
             amount,
             balance,
@@ -970,6 +978,7 @@ module suifund::suifund {
     #[test_only]
     public fun new_sp_rwd_for_testing(
         name: std::ascii::String,
+        project_id: ID,
         image_url: Url,
         amount: u64,
         balance: Balance<SUI>,
@@ -977,12 +986,12 @@ module suifund::suifund {
         end: u64,
         ctx: &mut TxContext
     ): SupporterReward {
-        new_supporter_reward(name, image_url, amount, balance, start, end, ctx)
+        new_supporter_reward(name, project_id, image_url, amount, balance, start, end, ctx)
     }
 
     #[test_only]
     public fun drop_sp_rwd_for_testing(sp_rwd: SupporterReward) {
-        let SupporterReward { id, name: _, image_url: _, amount: _, balance, start: _, end: _, attach_df: _ } = sp_rwd;
+        let SupporterReward { id, name: _, project_id: _, image_url: _, amount: _, balance, start: _, end: _, attach_df: _ } = sp_rwd;
         balance::destroy_for_testing(balance);
         object::delete(id);
     }
