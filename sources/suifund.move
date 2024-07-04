@@ -160,7 +160,7 @@ module suifund::suifund {
             std::string::utf8(b"project_url"),
             std::string::utf8(b"start"),
             std::string::utf8(b"end"),
-            std::string::utf8(b"alert!"),
+            std::string::utf8(b"alert"),
         ];
         let background_url = b"{image_url}";
         let project_name = b"{name}";
@@ -174,7 +174,7 @@ module suifund::suifund {
             std::string::utf8(project_url),
             std::string::utf8(b"{start}"),
             std::string::utf8(b"{end}"),
-            std::string::utf8(b"Do not visit any links in the pictures, as they may be scams."),
+            std::string::utf8(b"!!!Do not visit any links in the pictures, as they may be SCAMs."),
         ];
 
         let publisher = package::claim(otw, ctx);
