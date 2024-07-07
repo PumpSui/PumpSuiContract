@@ -924,6 +924,42 @@ module suifund::suifund {
         assert!(object::id(project_record)==project_admin_cap.to, ECapMismatch);
     }
 
+    public(package) fun add_df_in_project<Name: copy + drop + store, Value: store>(
+        project_record: &mut ProjectRecord, 
+        name: Name,
+        value: Value
+    ) {
+        df::add<Name, Value>(&mut project_record.id, name, value);
+    }
+
+    public(package) fun remove_df_in_project<Name: copy + drop + store, Value: store>(
+        project_record: &mut ProjectRecord, 
+        name: Name
+    ): Value {
+        df::remove<Name, Value>(&mut project_record.id, name)
+    }
+
+    public(package) fun borrow_in_project<Name: copy + drop + store, Value: store>(
+        project_record: &ProjectRecord, 
+        name: Name
+    ): &Value {
+        df::borrow<Name, Value>(&project_record.id, name)
+    }
+
+    public(package) fun borrow_mut_in_project<Name: copy + drop + store, Value: store>(
+        project_record: &mut ProjectRecord,
+        name: Name
+    ): &mut Value {
+        df::borrow_mut<Name, Value>(&mut project_record.id, name)
+    }
+
+    public(package) fun exists_in_project<Name: copy + drop + store>(
+        project_record: &ProjectRecord, 
+        name: Name
+    ): bool {
+        df::exists_<Name>(&project_record.id, name)
+    }
+
     fun add_df_with_attach<Value: store>(
         sp_rwd: &mut SupporterReward,
         value: Value
