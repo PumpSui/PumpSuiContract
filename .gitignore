@@ -3,3 +3,5 @@ Move.lock
 .DS_Store
 *.svg
 /scripts
+/subproject/srcoin/build
+/subproject/srcoin/tests
