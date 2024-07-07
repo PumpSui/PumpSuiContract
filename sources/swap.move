@@ -1,15 +1,13 @@
 module suifund::swap {
     use std::type_name;
-    use sui::coin::{Self, Coin, CoinMetadata, TreasuryCap};
+    use sui::coin::{Self, Coin, TreasuryCap};
     use suifund::suifund::{Self, ProjectRecord, ProjectAdminCap, SupporterReward};
 
     const COIN_TYPE: vector<u8> = b"coin_type";
     const TREASURY: vector<u8> = b"treasury";
-    const METADATA: vector<u8> = b"metadata";
     const STORAGE: vector<u8> = b"storage_sr";
 
     const EAlreadyInit: u64 = 0;
-    const EInvalidMetaData: u64 = 1;
     const EInvalidTreasuryCap: u64 = 2;
     const ENotInit: u64 = 3;
     const ENotSameProject: u64 = 4;
@@ -19,17 +17,14 @@ module suifund::swap {
         project_record: &mut ProjectRecord,
         project_admin_cap: &ProjectAdminCap,
         treasury_cap: TreasuryCap<T>,
-        coin_metadata: CoinMetadata<T>,
     ) {
         assert!(!suifund::exists_in_project<std::ascii::String>(project_record, std::ascii::string(COIN_TYPE)), EAlreadyInit);
         suifund::check_project_cap(project_record, project_admin_cap);
-        assert!(coin::get_decimals<T>(&coin_metadata) == 0, EInvalidMetaData);
         assert!(coin::total_supply<T>(&treasury_cap) == 0, EInvalidTreasuryCap);
 
         let coin_type = type_name::into_string(type_name::get_with_original_ids<T>());
         suifund::add_df_in_project<std::ascii::String, std::ascii::String>(project_record, std::ascii::string(COIN_TYPE), coin_type);
         suifund::add_df_in_project<std::ascii::String, TreasuryCap<T>>(project_record, std::ascii::string(TREASURY), treasury_cap);
-        suifund::add_df_in_project<std::ascii::String, CoinMetadata<T>>(project_record, std::ascii::string(METADATA), coin_metadata);
         suifund::add_df_in_project<std::ascii::String, vector<SupporterReward>>(project_record, std::ascii::string(STORAGE), vector::empty<SupporterReward>());
     }
 
@@ -94,13 +89,7 @@ module suifund::swap {
         transfer::public_transfer(sr, ctx.sender());
     }
 
-    // ======== Edit Functions =========
-
-
     // ======== Read Functions =========
-    public fun get_decimals(): u8 {
-        0
-    }
 
     public fun get_coin_type(project_record: &ProjectRecord): &std::ascii::String {
         suifund::borrow_in_project<std::ascii::String, std::ascii::String>(project_record, std::ascii::string(COIN_TYPE))
