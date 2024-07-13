@@ -281,6 +281,7 @@ module suifund::suifund {
         assert!(time_interval >= THREE_DAYS_IN_MS, EInvalidTimeInterval);
         assert!(ratio <= 100, EInvalidRatio);
         assert!(min_value_sui >= SUI_BASE, ETooLittle);
+        assert!(amount_per_sui >= 1, ETooLittle);
         if (max_value_sui != 0) {
             assert!(min_value_sui <= max_value_sui, EInvalidSuiValue);
         };
