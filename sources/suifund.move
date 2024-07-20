@@ -19,8 +19,7 @@ module suifund::suifund {
     };
     use suifund::{
         comment::{Self, Comment},
-        utils::{mul_div, get_remain_value},
-        svg::generateSVG
+        utils::{mul_div, get_remain_value}
     };
 
     // ======== Constants =========
@@ -105,7 +104,7 @@ module suifund::suifund {
         id: UID,
         name: std::ascii::String,
         project_id: ID,
-        image_url: Url,
+        image: Url,
         amount: u64,
         balance: Balance<SUI>,
         start: u64,
@@ -169,11 +168,9 @@ module suifund::suifund {
             std::string::utf8(b"end"),
             std::string::utf8(b"alert"),
         ];
-        let background_url = b"{image_url}";
-        let project_name = b"{name}";
-        let amount = b"{amount}";
-        let image_url = generateSVG(background_url, project_name, amount);
-        let mut project_url: vector<u8> = b"";
+        let mut image_url: vector<u8> = b"https://pumpsuiapi.com/objectId/";
+        vector::append(&mut image_url, b"{id}");
+        let mut project_url: vector<u8> = b"https://pumpsui.com/project/";
         vector::append(&mut project_url, b"{project_id}");
         let values = vector[
             std::string::utf8(b"Supporter Ticket"),
@@ -479,7 +476,7 @@ module suifund::suifund {
         assert!(sp_rwd_1.name == sp_rwd_2.name, ENotSameProject);
         assert!(sp_rwd_2.attach_df == 0, ErrorAttachDFExists);
         
-        let SupporterReward { id, name: _, project_id: _, image_url: _, amount, balance, start: _, end: _, attach_df: _ } = sp_rwd_2;
+        let SupporterReward { id, name: _, project_id: _, image: _, amount, balance, start: _, end: _, attach_df: _ } = sp_rwd_2;
         sp_rwd_1.amount = sp_rwd_1.amount + amount;
         balance::join<SUI>(&mut sp_rwd_1.balance, balance);
         object::delete(id);
@@ -519,7 +516,7 @@ module suifund::suifund {
         new_supporter_reward(
             sp_rwd.name,
             sp_rwd.project_id,
-            sp_rwd.image_url,
+            sp_rwd.image,
             amount,
             new_sui_balance,
             sp_rwd.start,
@@ -572,7 +569,7 @@ module suifund::suifund {
             id,
             name,
             project_id: _,
-            image_url: _,
+            image: _,
             amount,
             balance,
             start: _,
@@ -897,8 +894,8 @@ module suifund::suifund {
         sp_rwd.name
     }
 
-    public fun sr_image_url(sp_rwd: &SupporterReward): Url {
-        sp_rwd.image_url
+    public fun sr_image(sp_rwd: &SupporterReward): Url {
+        sp_rwd.image
     }
 
     public fun sr_amount(sp_rwd: &SupporterReward): u64 {
@@ -921,9 +918,9 @@ module suifund::suifund {
         sp_rwd.attach_df
     }
 
-    public fun update_image_url(project_record: &ProjectRecord, supporter_reward: &mut SupporterReward) {
+    public fun update_image(project_record: &ProjectRecord, supporter_reward: &mut SupporterReward) {
         assert!(project_record.name == supporter_reward.name, ENotSameProject);
-        supporter_reward.image_url = project_record.image_url;
+        supporter_reward.image = project_record.image_url;
     }
 
     public fun check_project_cap(project_record: &ProjectRecord, project_admin_cap: &ProjectAdminCap) {
@@ -996,7 +993,7 @@ module suifund::suifund {
     fun new_supporter_reward(
         name: std::ascii::String,
         project_id: ID,
-        image_url: Url,
+        image: Url,
         amount: u64,
         balance: Balance<SUI>,
         start: u64,
@@ -1007,7 +1004,7 @@ module suifund::suifund {
             id: object::new(ctx),
             name,
             project_id,
-            image_url,
+            image,
             amount,
             balance,
             start,
@@ -1027,19 +1024,19 @@ module suifund::suifund {
     public fun new_sp_rwd_for_testing(
         name: std::ascii::String,
         project_id: ID,
-        image_url: Url,
+        image: Url,
         amount: u64,
         balance: Balance<SUI>,
         start: u64,
         end: u64,
         ctx: &mut TxContext
     ): SupporterReward {
-        new_supporter_reward(name, project_id, image_url, amount, balance, start, end, ctx)
+        new_supporter_reward(name, project_id, image, amount, balance, start, end, ctx)
     }
 
     #[test_only]
     public fun drop_sp_rwd_for_testing(sp_rwd: SupporterReward) {
-        let SupporterReward { id, name: _, project_id: _, image_url: _, amount: _, balance, start: _, end: _, attach_df: _ } = sp_rwd;
+        let SupporterReward { id, name: _, project_id: _, image: _, amount: _, balance, start: _, end: _, attach_df: _ } = sp_rwd;
         balance::destroy_for_testing(balance);
         object::delete(id);
     }
