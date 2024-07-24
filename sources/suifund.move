@@ -143,6 +143,7 @@ module suifund::suifund {
         sender: address,
         recipient: address,
         value: u64,
+        project: ID,
     }
 
     public struct ClaimStreamPayment has copy, drop {
@@ -458,11 +459,12 @@ module suifund::suifund {
         )
     }
 
-    public fun reference_reward(reward: Coin<SUI>, sender: address, recipient: address) {
+    public fun reference_reward(reward: Coin<SUI>, sender: address, recipient: address, project_record: &ProjectRecord) {
         emit(ReferenceReward {
             sender,
             recipient,
             value: coin::value<SUI>(&reward),
+            project: object::id(project_record),
         });
         transfer::public_transfer(reward, recipient);
     }
