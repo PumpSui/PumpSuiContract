@@ -42,7 +42,7 @@ module suifund::deploy_record_tests {
         {
             let mut deploy_record = test_scenario::take_shared<suifund::DeployRecord>(scenario);
             let mut test_coin = coin::mint_for_testing<SUI>(20_000_000_000, test_scenario::ctx(scenario));
-            suifund::deploy(&mut deploy_record, name, description, image_url, linktree, x, telegram, discord, website, github, start_time_ms, time_interval, total_deposit_sui, ratio, amount_per_sui, min_value_sui, max_value_sui, &mut test_coin, &clk, test_scenario::ctx(scenario));
+            suifund::deploy(&mut deploy_record, name, description, image_url, linktree, x, telegram, discord, website, github, start_time_ms, time_interval, total_deposit_sui, ratio, amount_per_sui, 0, min_value_sui, max_value_sui, &mut test_coin, &clk, test_scenario::ctx(scenario));
             assert!(coin::burn_for_testing(test_coin) == 0, 1);
             test_scenario::return_shared(deploy_record);
         };
@@ -51,7 +51,7 @@ module suifund::deploy_record_tests {
         {
             let mut deploy_record = test_scenario::take_shared<suifund::DeployRecord>(scenario);
             let mut test_coin = coin::mint_for_testing<SUI>(20_000_000_000, test_scenario::ctx(scenario));
-            suifund::deploy(&mut deploy_record, name, description, image_url, linktree, x, telegram, discord, website, github, start_time_ms, time_interval, total_deposit_sui, ratio, amount_per_sui, min_value_sui, max_value_sui, &mut test_coin, &clk, test_scenario::ctx(scenario));
+            suifund::deploy(&mut deploy_record, name, description, image_url, linktree, x, telegram, discord, website, github, start_time_ms, time_interval, total_deposit_sui, ratio, amount_per_sui, 0, min_value_sui, max_value_sui, &mut test_coin, &clk, test_scenario::ctx(scenario));
             assert!(coin::burn_for_testing(test_coin) == 0, 1);
             test_scenario::return_shared(deploy_record);
         };
@@ -96,7 +96,7 @@ module suifund::deploy_record_tests {
         {
             let mut deploy_record = test_scenario::take_shared<suifund::DeployRecord>(scenario);
             let mut test_coin = coin::mint_for_testing<SUI>(20_000_000_000, test_scenario::ctx(scenario));
-            suifund::deploy(&mut deploy_record, name, description, image_url, linktree, x, telegram, discord, website, github, start_time_ms, time_interval, total_deposit_sui, ratio, amount_per_sui, min_value_sui, max_value_sui, &mut test_coin, &clk, test_scenario::ctx(scenario));
+            suifund::deploy(&mut deploy_record, name, description, image_url, linktree, x, telegram, discord, website, github, start_time_ms, time_interval, total_deposit_sui, ratio, amount_per_sui, 0, min_value_sui, max_value_sui, &mut test_coin, &clk, test_scenario::ctx(scenario));
             assert!(coin::burn_for_testing(test_coin) == 0, 1);
             test_scenario::return_shared(deploy_record);
         };
@@ -141,7 +141,7 @@ module suifund::deploy_record_tests {
         {
             let mut deploy_record = test_scenario::take_shared<suifund::DeployRecord>(scenario);
             let mut test_coin = coin::mint_for_testing<SUI>(20_000_000_000, test_scenario::ctx(scenario));
-            suifund::deploy(&mut deploy_record, name, description, image_url, linktree, x, telegram, discord, website, github, start_time_ms, time_interval, total_deposit_sui, ratio, amount_per_sui, min_value_sui, max_value_sui, &mut test_coin, &clk, test_scenario::ctx(scenario));
+            suifund::deploy(&mut deploy_record, name, description, image_url, linktree, x, telegram, discord, website, github, start_time_ms, time_interval, total_deposit_sui, ratio, amount_per_sui, 0, min_value_sui, max_value_sui, &mut test_coin, &clk, test_scenario::ctx(scenario));
             assert!(coin::burn_for_testing(test_coin) == 0, 1);
             test_scenario::return_shared(deploy_record);
         };
@@ -185,7 +185,7 @@ module suifund::deploy_record_tests {
         {
             let mut deploy_record = test_scenario::take_shared<suifund::DeployRecord>(scenario);
             let mut test_coin = coin::mint_for_testing<SUI>(20_000_000_000, test_scenario::ctx(scenario));
-            suifund::deploy(&mut deploy_record, name, description, image_url, linktree, x, telegram, discord, website, github, start_time_ms, time_interval, total_deposit_sui, ratio, amount_per_sui, min_value_sui, max_value_sui, &mut test_coin, &clk, test_scenario::ctx(scenario));
+            suifund::deploy(&mut deploy_record, name, description, image_url, linktree, x, telegram, discord, website, github, start_time_ms, time_interval, total_deposit_sui, ratio, amount_per_sui, 0, min_value_sui, max_value_sui, &mut test_coin, &clk, test_scenario::ctx(scenario));
             assert!(coin::burn_for_testing(test_coin) == 0, 1);
             test_scenario::return_shared(deploy_record);
         };
@@ -229,7 +229,7 @@ module suifund::deploy_record_tests {
         {
             let mut deploy_record = test_scenario::take_shared<suifund::DeployRecord>(scenario);
             let mut test_coin = coin::mint_for_testing<SUI>(20_000_000_000, test_scenario::ctx(scenario));
-            suifund::deploy(&mut deploy_record, name, description, image_url, linktree, x, telegram, discord, website, github, start_time_ms, time_interval, total_deposit_sui, ratio, amount_per_sui, min_value_sui, max_value_sui, &mut test_coin, &clk, test_scenario::ctx(scenario));
+            suifund::deploy(&mut deploy_record, name, description, image_url, linktree, x, telegram, discord, website, github, start_time_ms, time_interval, total_deposit_sui, ratio, amount_per_sui, 0, min_value_sui, max_value_sui, &mut test_coin, &clk, test_scenario::ctx(scenario));
             assert!(coin::burn_for_testing(test_coin) == 0, 1);
             test_scenario::return_shared(deploy_record);
         };
@@ -273,7 +273,7 @@ module suifund::deploy_record_tests {
         {
             let mut deploy_record = test_scenario::take_shared<suifund::DeployRecord>(scenario);
             let mut test_coin = coin::mint_for_testing<SUI>(20_000_000_000, test_scenario::ctx(scenario));
-            suifund::deploy(&mut deploy_record, name, description, image_url, linktree, x, telegram, discord, website, github, start_time_ms, time_interval, total_deposit_sui, ratio, amount_per_sui, min_value_sui, max_value_sui, &mut test_coin, &clk, test_scenario::ctx(scenario));
+            suifund::deploy(&mut deploy_record, name, description, image_url, linktree, x, telegram, discord, website, github, start_time_ms, time_interval, total_deposit_sui, ratio, amount_per_sui, 0, min_value_sui, max_value_sui, &mut test_coin, &clk, test_scenario::ctx(scenario));
             assert!(coin::burn_for_testing(test_coin) == 0, 1);
             test_scenario::return_shared(deploy_record);
         };
@@ -319,7 +319,7 @@ module suifund::deploy_record_tests {
         {
             let mut deploy_record = test_scenario::take_shared<suifund::DeployRecord>(scenario);
             let mut test_coin = coin::mint_for_testing<SUI>(20_000_000_100, test_scenario::ctx(scenario));
-            suifund::deploy(&mut deploy_record, name, description, image_url, linktree, x, telegram, discord, website, github, start_time_ms, time_interval, total_deposit_sui, ratio, amount_per_sui, min_value_sui, max_value_sui, &mut test_coin, &clk, test_scenario::ctx(scenario));
+            suifund::deploy(&mut deploy_record, name, description, image_url, linktree, x, telegram, discord, website, github, start_time_ms, time_interval, total_deposit_sui, ratio, amount_per_sui, 0, min_value_sui, max_value_sui, &mut test_coin, &clk, test_scenario::ctx(scenario));
             assert!(coin::burn_for_testing(test_coin) == 100, 1);
             test_scenario::return_shared(deploy_record);
         };
@@ -328,7 +328,7 @@ module suifund::deploy_record_tests {
         {
             let mut deploy_record = test_scenario::take_shared<suifund::DeployRecord>(scenario);
             let mut test_coin = coin::mint_for_testing<SUI>(50_000_000_123, test_scenario::ctx(scenario));
-            suifund::deploy(&mut deploy_record, b"Bob homepage", description, image_url, linktree, x, telegram, discord, website, github, start_time_ms, time_interval, 5_000_000_000_000, ratio, amount_per_sui, min_value_sui, max_value_sui, &mut test_coin, &clk, test_scenario::ctx(scenario));
+            suifund::deploy(&mut deploy_record, b"Bob homepage", description, image_url, linktree, x, telegram, discord, website, github, start_time_ms, time_interval, 5_000_000_000_000, ratio, amount_per_sui, 0, min_value_sui, max_value_sui, &mut test_coin, &clk, test_scenario::ctx(scenario));
             assert!(coin::burn_for_testing(test_coin) == 123, 2);
             test_scenario::return_shared(deploy_record);
         };
@@ -346,7 +346,7 @@ module suifund::deploy_record_tests {
         {
             let mut deploy_record = test_scenario::take_shared<suifund::DeployRecord>(scenario);
             let mut test_coin = coin::mint_for_testing<SUI>(250_000_000_567, test_scenario::ctx(scenario));
-            suifund::deploy(&mut deploy_record, b"Cindy homepage", description, image_url, linktree, x, telegram, discord, website, github, start_time_ms, time_interval, 5_000_000_000_000, ratio, amount_per_sui, min_value_sui, max_value_sui, &mut test_coin, &clk, test_scenario::ctx(scenario));
+            suifund::deploy(&mut deploy_record, b"Cindy homepage", description, image_url, linktree, x, telegram, discord, website, github, start_time_ms, time_interval, 5_000_000_000_000, ratio, amount_per_sui, 0, min_value_sui, max_value_sui, &mut test_coin, &clk, test_scenario::ctx(scenario));
             assert!(coin::burn_for_testing(test_coin) == 100_000_000_567, 4);
             test_scenario::return_shared(deploy_record);
         };

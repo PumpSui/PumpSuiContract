@@ -35,7 +35,7 @@ module suifund::project_record_tests {
 
         test_scenario::next_tx(scenario, sender);
         let mut project_record = {
-            suifund::new_project_record_for_testing(name, description, image_url, linktree, x, telegram, discord, website, github, ratio, start_time_ms, time_interval, total_deposit_sui, amount_per_sui, min_value_sui, max_value_sui, test_scenario::ctx(scenario))
+            suifund::new_project_record_for_testing(name, description, image_url, linktree, x, telegram, discord, website, github, ratio, start_time_ms, time_interval, total_deposit_sui, amount_per_sui, 0, min_value_sui, max_value_sui, test_scenario::ctx(scenario))
         };
 
         test_scenario::next_tx(scenario, alice);
@@ -83,7 +83,7 @@ module suifund::project_record_tests {
 
         test_scenario::next_tx(scenario, sender);
         let mut project_record = {
-            suifund::new_project_record_for_testing(name, description, image_url, linktree, x, telegram, discord, website, github, ratio, start_time_ms, time_interval, total_deposit_sui, amount_per_sui, min_value_sui, max_value_sui, test_scenario::ctx(scenario))
+            suifund::new_project_record_for_testing(name, description, image_url, linktree, x, telegram, discord, website, github, ratio, start_time_ms, time_interval, total_deposit_sui, amount_per_sui, 0, min_value_sui, max_value_sui, test_scenario::ctx(scenario))
         };
 
         clock::set_for_testing(&mut clk, 1000);
@@ -132,7 +132,7 @@ module suifund::project_record_tests {
 
         test_scenario::next_tx(scenario, sender);
         let mut project_record = {
-            suifund::new_project_record_for_testing(name, description, image_url, linktree, x, telegram, discord, website, github, ratio, start_time_ms, time_interval, total_deposit_sui, amount_per_sui, min_value_sui, max_value_sui, test_scenario::ctx(scenario))
+            suifund::new_project_record_for_testing(name, description, image_url, linktree, x, telegram, discord, website, github, ratio, start_time_ms, time_interval, total_deposit_sui, amount_per_sui, 0, min_value_sui, max_value_sui, test_scenario::ctx(scenario))
         };
 
         clock::set_for_testing(&mut clk, 500_000_000);
@@ -182,13 +182,13 @@ module suifund::project_record_tests {
         test_scenario::next_tx(scenario, sender);
         let mut project_record = {
             suifund::init_for_testing(test_scenario::ctx(scenario));
-            suifund::new_project_record_for_testing(name, description, image_url, linktree, x, telegram, discord, website, github, ratio, start_time_ms, time_interval, total_deposit_sui, amount_per_sui, min_value_sui, max_value_sui, test_scenario::ctx(scenario))           
+            suifund::new_project_record_for_testing(name, description, image_url, linktree, x, telegram, discord, website, github, ratio, start_time_ms, time_interval, total_deposit_sui, amount_per_sui, 0, min_value_sui, max_value_sui, test_scenario::ctx(scenario))           
         };
 
         test_scenario::next_tx(scenario, sender);
         {
             let admin_cap = scenario.take_from_sender<suifund::AdminCap>();
-            suifund::cancel_project(&admin_cap, &mut project_record);
+            suifund::cancel_project_by_admin(&admin_cap, &mut project_record);
             scenario.return_to_sender(admin_cap);
         };
 
@@ -239,7 +239,7 @@ module suifund::project_record_tests {
         test_scenario::next_tx(scenario, sender);
         let mut project_record = {
             suifund::init_for_testing(test_scenario::ctx(scenario));
-            suifund::new_project_record_for_testing(name, description, image_url, linktree, x, telegram, discord, website, github, ratio, start_time_ms, time_interval, total_deposit_sui, amount_per_sui, min_value_sui, max_value_sui, test_scenario::ctx(scenario))           
+            suifund::new_project_record_for_testing(name, description, image_url, linktree, x, telegram, discord, website, github, ratio, start_time_ms, time_interval, total_deposit_sui, amount_per_sui, 0, min_value_sui, max_value_sui, test_scenario::ctx(scenario))           
         };
 
         clock::set_for_testing(&mut clk, 1000);
@@ -296,7 +296,7 @@ module suifund::project_record_tests {
         test_scenario::next_tx(scenario, sender);
         let mut project_record = {
             suifund::init_for_testing(test_scenario::ctx(scenario));
-            suifund::new_project_record_for_testing(name, description, image_url, linktree, x, telegram, discord, website, github, ratio, start_time_ms, time_interval, total_deposit_sui, amount_per_sui, min_value_sui, max_value_sui, test_scenario::ctx(scenario))           
+            suifund::new_project_record_for_testing(name, description, image_url, linktree, x, telegram, discord, website, github, ratio, start_time_ms, time_interval, total_deposit_sui, amount_per_sui, 0, min_value_sui, max_value_sui, test_scenario::ctx(scenario))           
         };
 
         clock::set_for_testing(&mut clk, 1000);
@@ -361,7 +361,7 @@ module suifund::project_record_tests {
         {
             let mut deploy_record = test_scenario::take_shared<suifund::DeployRecord>(scenario);
             let mut test_coin = coin::mint_for_testing<SUI>(20_000_000_000, test_scenario::ctx(scenario));
-            suifund::deploy(&mut deploy_record, name, description, image_url, linktree, x, telegram, discord, website, github, start_time_ms, time_interval, total_deposit_sui, ratio, amount_per_sui, min_value_sui, max_value_sui, &mut test_coin, &clk, test_scenario::ctx(scenario));
+            suifund::deploy(&mut deploy_record, name, description, image_url, linktree, x, telegram, discord, website, github, start_time_ms, time_interval, total_deposit_sui, ratio, amount_per_sui, 0, min_value_sui, max_value_sui, &mut test_coin, &clk, test_scenario::ctx(scenario));
             assert!(coin::burn_for_testing(test_coin) == 0, 1);
             test_scenario::return_shared(deploy_record);
         };
@@ -494,7 +494,7 @@ module suifund::project_record_tests {
         {
             let mut deploy_record = test_scenario::take_shared<suifund::DeployRecord>(scenario);
             let mut test_coin = coin::mint_for_testing<SUI>(20_000_000_000, test_scenario::ctx(scenario));
-            suifund::deploy(&mut deploy_record, name, description, image_url, linktree, x, telegram, discord, website, github, start_time_ms, time_interval, total_deposit_sui, ratio, amount_per_sui, min_value_sui, max_value_sui, &mut test_coin, &clk, test_scenario::ctx(scenario));
+            suifund::deploy(&mut deploy_record, name, description, image_url, linktree, x, telegram, discord, website, github, start_time_ms, time_interval, total_deposit_sui, ratio, amount_per_sui, 0, min_value_sui, max_value_sui, &mut test_coin, &clk, test_scenario::ctx(scenario));
             assert!(coin::burn_for_testing(test_coin) == 0, 1);
             test_scenario::return_shared(deploy_record);
         };
@@ -545,7 +545,7 @@ module suifund::project_record_tests {
         {
             let mut project_record = test_scenario::take_shared<suifund::ProjectRecord>(scenario);
             let admin_cap = scenario.take_from_sender<suifund::AdminCap>();
-            suifund::cancel_project(&admin_cap, &mut project_record);
+            suifund::cancel_project_by_admin(&admin_cap, &mut project_record);
             scenario.return_to_sender(admin_cap);
             test_scenario::return_shared(project_record);
         };
