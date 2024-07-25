@@ -35,7 +35,7 @@ module suifund::suifund {
     const EInvalidSuiValue: u64 = 4;
     const ETooLittle: u64 = 5;
     const ENotStarted: u64 = 6;
-    const EEnded: u64 = 7;
+    // const EEnded: u64 = 7;
     const ECapMismatch: u64 = 8;
     const EAlreadyMax: u64 = 9;
     const ENotSameProject: u64 = 10;
@@ -48,6 +48,10 @@ module suifund::suifund {
     const EImproperRatio: u64 = 17;
     const EProjectNotCanceled: u64 = 18;
     const ETakeAwayNotCompleted: u64 = 19;
+    const EInvalidThresholdRatio: u64 = 20;
+    const ENotBegin: u64 = 21;
+    const EAlreadyBegin: u64 = 22;
+    const ENotCanceled: u64 = 23;
 
     // ======== Types =========
     public struct SUIFUND has drop {}
@@ -84,6 +88,8 @@ module suifund::suifund {
         remain: u64,
         current_supply: u64,
         total_transactions: u64,
+        threshold_ratio: u64,
+        begin: bool,
         min_value_sui: u64, 
         max_value_sui: u64,
         participants: TableVec<address>, 
@@ -223,6 +229,7 @@ module suifund::suifund {
         total_deposit_sui: u64,
         ratio: u64,
         amount_per_sui: u64,
+        threshold_ratio: u64,
         min_value_sui: u64, 
         max_value_sui: u64,
         fee: &mut Coin<SUI>,
@@ -245,6 +252,7 @@ module suifund::suifund {
             total_deposit_sui,
             ratio,
             amount_per_sui,
+            threshold_ratio,
             min_value_sui, 
             max_value_sui,
             fee,
@@ -270,6 +278,7 @@ module suifund::suifund {
         total_deposit_sui: u64,
         ratio: u64,
         amount_per_sui: u64,
+        threshold_ratio: u64,
         min_value_sui: u64, 
         max_value_sui: u64,
         fee: &mut Coin<SUI>,
@@ -282,6 +291,7 @@ module suifund::suifund {
         assert!(start_time_ms >= now, EInvalidStartTime);
         assert!(time_interval >= THREE_DAYS_IN_MS, EInvalidTimeInterval);
         assert!(ratio <= 100, EInvalidRatio);
+        assert!(threshold_ratio <= 100, EInvalidThresholdRatio);
         assert!(min_value_sui >= SUI_BASE, ETooLittle);
         assert!(amount_per_sui >= 1, ETooLittle);
         if (max_value_sui != 0) {
@@ -317,6 +327,8 @@ module suifund::suifund {
             remain: total_supply,
             current_supply: 0,
             total_transactions: 0,
+            threshold_ratio,
+            begin: false,
             min_value_sui,
             max_value_sui,
             participants: table_vec::empty<address>(ctx),
@@ -352,6 +364,7 @@ module suifund::suifund {
         ctx: &mut TxContext
     ): Coin<SUI> {
         assert!(project_record.version == VERSION, EVersionMismatch);
+        assert!(project_record.begin, ENotBegin);
         check_project_cap(project_record, project_admin_cap);
         assert!(!project_record.cancel, EProjectCanceled);
 
@@ -401,7 +414,7 @@ module suifund::suifund {
         let sender = ctx.sender();
         let now = clock::timestamp_ms(clk);
         assert!(now >= project_record.start_time_ms, ENotStarted);
-        assert!(now <= project_record.end_time_ms, EEnded);
+        // assert!(now <= project_record.end_time_ms, EEnded);
         assert!(project_record.version == VERSION, EVersionMismatch);
         assert!(!project_record.cancel, EProjectCanceled);
 
@@ -439,6 +452,12 @@ module suifund::suifund {
 
         let project_sui = coin::into_balance<SUI>(coin::split<SUI>(fee_sui, project_sui_value, ctx));
         balance::join<SUI>(&mut project_record.balance, project_sui);
+
+        if (!project_record.begin && 
+            project_record.current_supply >= mul_div(project_record.total_supply, project_record.threshold_ratio, 100)
+        ) {
+            project_record.begin = true;
+        };
 
         emit(MintEvent {
             project_name: project_record.name,
@@ -551,7 +570,7 @@ module suifund::suifund {
         let sender = ctx.sender();
         let now = clock::timestamp_ms(clk);
 
-        let total_value = if (project_record.cancel) {
+        let total_value = if (project_record.cancel || !project_record.begin) {
             balance::value<SUI>(&project_record.balance)
         } else {
             get_remain_value(
@@ -566,6 +585,10 @@ module suifund::suifund {
         let inside_value = balance::value<SUI>(&sp_rwd.balance);
 
         project_record.current_supply = project_record.current_supply - sp_rwd.amount;
+
+        if (!project_record.begin) {
+            project_record.remain = project_record.remain + sp_rwd.amount;
+        };
 
         let SupporterReward {
             id,
@@ -762,6 +785,28 @@ module suifund::suifund {
         });
     }
 
+    public fun cancel_project_by_team(
+        project_record: &mut ProjectRecord, 
+        project_admin_cap: &ProjectAdminCap
+    ) {
+        check_project_cap(project_record, project_admin_cap);
+        assert!(!project_record.begin, EAlreadyBegin);
+        project_record.cancel = true;
+    }
+
+    public fun burn_project_admin_cap(
+        project_record: &mut ProjectRecord, 
+        project_admin_cap: ProjectAdminCap
+    ) {
+        check_project_cap(project_record, &project_admin_cap);
+        assert!(project_record.cancel, ENotCanceled);
+        let ProjectAdminCap {
+            id,
+            to: _,
+        } = project_admin_cap;
+        object::delete(id);
+    }
+
     // ======= ProjectRecord Get functions ========
 
     public fun project_name(project_record: &ProjectRecord): std::ascii::String {
@@ -862,7 +907,7 @@ module suifund::suifund {
 
     // ======= Admin functions ========
     // In case of ProjectAdminCap is lost
-    public fun cancel_project(_: &AdminCap, project_record: &mut ProjectRecord) {
+    public fun cancel_project_by_admin(_: &AdminCap, project_record: &mut ProjectRecord) {
         project_record.cancel = true;
     }
 
@@ -978,7 +1023,7 @@ module suifund::suifund {
         sp_rwd: &mut SupporterReward
     ): Value {
         let name = type_name::into_string(type_name::get_with_original_ids<Value>());
-        // assert attach_coin > 0
+        // assert attach_df > 0
         sp_rwd.attach_df = sp_rwd.attach_df - 1;
         let value: Value = df::remove<std::ascii::String, Value>(&mut sp_rwd.id, name);
         value
@@ -1059,6 +1104,7 @@ module suifund::suifund {
         time_interval: u64,
         total_deposit_sui: u64,
         amount_per_sui: u64,
+        threshold_ratio: u64,
         min_value_sui: u64,
         max_value_sui: u64,
         ctx: &mut TxContext
@@ -1087,6 +1133,8 @@ module suifund::suifund {
             remain: total_supply,
             current_supply: 0,
             total_transactions: 0,
+            threshold_ratio,
+            begin: false,
             min_value_sui,
             max_value_sui,
             participants: table_vec::empty<address>(ctx),
@@ -1120,6 +1168,8 @@ module suifund::suifund {
             remain: _,
             current_supply: _,
             total_transactions: _,
+            threshold_ratio: _,
+            begin: _,
             min_value_sui: _,
             max_value_sui: _,
             participants,
