@@ -103,57 +103,57 @@ module suifund::project_record_tests {
         test_scenario::end(scenario_val);
     }
 
+    // #[test, expected_failure]
+    // public fun test_project_end() {
+
+    //     let sender = @0xABBA;
+    //     let alice = @0xCAEE;
+
+    //     let name = b"Fantastic Project";
+    //     let description = b"This is a Fantastic Project";
+    //     let image_url = b"";
+    //     let linktree = b"";
+    //     let x = b"";
+    //     let telegram = b"";
+    //     let discord = b"";
+    //     let website = b"";
+    //     let github = b"";
+    //     let ratio: u64 = 1;
+    //     let start_time_ms: u64 = 1000;
+    //     let time_interval: u64 = 300_000_000;
+    //     let total_deposit_sui: u64 = 1_000_000_000_000;
+    //     let amount_per_sui: u64 = 1_000;
+    //     let min_value_sui: u64 = 1_000_000_000;
+    //     let max_value_sui: u64 = 0;
+
+    //     let mut scenario_val = test_scenario::begin(sender);
+    //     let scenario = &mut scenario_val;
+    //     let mut clk = clock::create_for_testing(test_scenario::ctx(scenario));
+
+    //     test_scenario::next_tx(scenario, sender);
+    //     let mut project_record = {
+    //         suifund::new_project_record_for_testing(name, description, image_url, linktree, x, telegram, discord, website, github, ratio, start_time_ms, time_interval, total_deposit_sui, amount_per_sui, 0, min_value_sui, max_value_sui, test_scenario::ctx(scenario))
+    //     };
+
+    //     clock::set_for_testing(&mut clk, 500_000_000);
+    //     test_scenario::next_tx(scenario, alice);
+    //     {
+    //         let mut test_coin = coin::mint_for_testing<SUI>(min_value_sui, test_scenario::ctx(scenario));
+    //         suifund::mint(&mut project_record, &mut test_coin, &clk, test_scenario::ctx(scenario));
+    //         coin::burn_for_testing<SUI>(test_coin);
+    //     };
+
+    //     test_scenario::next_tx(scenario, sender);
+    //     {
+    //         suifund::drop_project_record_for_testing(project_record);
+    //     };
+
+    //     clock::destroy_for_testing(clk);
+    //     test_scenario::end(scenario_val);
+    // }
+
     #[test, expected_failure]
-    public fun test_project_end() {
-
-        let sender = @0xABBA;
-        let alice = @0xCAEE;
-
-        let name = b"Fantastic Project";
-        let description = b"This is a Fantastic Project";
-        let image_url = b"";
-        let linktree = b"";
-        let x = b"";
-        let telegram = b"";
-        let discord = b"";
-        let website = b"";
-        let github = b"";
-        let ratio: u64 = 1;
-        let start_time_ms: u64 = 1000;
-        let time_interval: u64 = 300_000_000;
-        let total_deposit_sui: u64 = 1_000_000_000_000;
-        let amount_per_sui: u64 = 1_000;
-        let min_value_sui: u64 = 1_000_000_000;
-        let max_value_sui: u64 = 0;
-
-        let mut scenario_val = test_scenario::begin(sender);
-        let scenario = &mut scenario_val;
-        let mut clk = clock::create_for_testing(test_scenario::ctx(scenario));
-
-        test_scenario::next_tx(scenario, sender);
-        let mut project_record = {
-            suifund::new_project_record_for_testing(name, description, image_url, linktree, x, telegram, discord, website, github, ratio, start_time_ms, time_interval, total_deposit_sui, amount_per_sui, 0, min_value_sui, max_value_sui, test_scenario::ctx(scenario))
-        };
-
-        clock::set_for_testing(&mut clk, 500_000_000);
-        test_scenario::next_tx(scenario, alice);
-        {
-            let mut test_coin = coin::mint_for_testing<SUI>(min_value_sui, test_scenario::ctx(scenario));
-            suifund::mint(&mut project_record, &mut test_coin, &clk, test_scenario::ctx(scenario));
-            coin::burn_for_testing<SUI>(test_coin);
-        };
-
-        test_scenario::next_tx(scenario, sender);
-        {
-            suifund::drop_project_record_for_testing(project_record);
-        };
-
-        clock::destroy_for_testing(clk);
-        test_scenario::end(scenario_val);
-    }
-
-    #[test, expected_failure]
-    public fun test_project_cancel() {
+    public fun test_project_admin_cancel() {
 
         let sender = @0xABBA;
         let alice = @0xCAEE;
@@ -260,6 +260,174 @@ module suifund::project_record_tests {
         test_scenario::next_tx(scenario, sender);
         {
             suifund::drop_project_record_for_testing(project_record);
+        };
+
+        clock::destroy_for_testing(clk);
+        test_scenario::end(scenario_val);
+    }
+
+    #[test]
+    public fun test_burn_not_begin() {
+
+        let sender = @0xABBA;
+        let alice = @0xCAEE;
+        let bob = @0xCAFE;
+
+        let name = b"Fantastic Project";
+        let description = b"This is a Fantastic Project";
+        let image_url = b"";
+        let linktree = b"";
+        let x = b"";
+        let telegram = b"";
+        let discord = b"";
+        let website = b"";
+        let github = b"";
+        let ratio: u64 = 50;
+        let start_time_ms: u64 = 1000;
+        let time_interval: u64 = 500_000_000;
+        let total_deposit_sui: u64 = 1_000_000_000_000;
+        let amount_per_sui: u64 = 1_000;
+        let min_value_sui: u64 = 1_000_000_000;
+        let max_value_sui: u64 = 0;
+
+        let mut scenario_val = test_scenario::begin(sender);
+        let scenario = &mut scenario_val;
+        let mut clk = clock::create_for_testing(test_scenario::ctx(scenario));
+
+        test_scenario::next_tx(scenario, sender);
+        {
+            suifund::init_for_testing(test_scenario::ctx(scenario));
+        };
+
+        test_scenario::next_tx(scenario, alice);
+        {
+            let mut deploy_record = test_scenario::take_shared<suifund::DeployRecord>(scenario);
+            let mut test_coin = coin::mint_for_testing<SUI>(20_000_000_000, test_scenario::ctx(scenario));
+            suifund::deploy(&mut deploy_record, name, description, image_url, linktree, x, telegram, discord, website, github, start_time_ms, time_interval, total_deposit_sui, ratio, amount_per_sui, 90, min_value_sui, max_value_sui, &mut test_coin, &clk, test_scenario::ctx(scenario));
+            assert!(coin::burn_for_testing(test_coin) == 0, 1);
+            test_scenario::return_shared(deploy_record);
+        };
+
+        clock::set_for_testing(&mut clk, 1000);
+        test_scenario::next_tx(scenario, bob);
+        {
+            let mut project_record = test_scenario::take_shared<suifund::ProjectRecord>(scenario);
+            let mut test_coin = coin::mint_for_testing<SUI>(100_000_000_000, test_scenario::ctx(scenario));
+            let supporter_reward = suifund::do_mint(&mut project_record, &mut test_coin, &clk, test_scenario::ctx(scenario));
+            assert!(suifund::sr_amount(&supporter_reward) == 100 * amount_per_sui, 2);
+            assert!(suifund::sr_balance_value(&supporter_reward) == 50_000_000_000, 3);
+            transfer::public_transfer(supporter_reward, bob);
+            assert!(suifund::project_participants_number(&project_record) == 1, 4);
+            assert!(suifund::project_balance_value(&project_record) == 50_000_000_000, 5);
+            assert!(suifund::project_current_supply(&project_record) == 100_000, 6);
+            assert!(suifund::project_remain(&project_record) == 900_000, 7);
+            assert!(suifund::project_total_supply(&project_record) == 1000_000, 8);
+            assert!(suifund::project_total_transactions(&project_record) == 1, 9);
+            assert!(coin::burn_for_testing(test_coin) == 0, 10);
+            test_scenario::return_shared(project_record);
+        };
+
+        clock::increment_for_testing(&mut clk, 100_000_000);
+        test_scenario::next_tx(scenario, bob);
+        {
+            let mut project_record = test_scenario::take_shared<suifund::ProjectRecord>(scenario);
+            let supporter_reward = test_scenario::take_from_sender<suifund::SupporterReward>(scenario);
+            let burn_coin = suifund::do_burn(&mut project_record, supporter_reward, &clk, test_scenario::ctx(scenario));
+            let receive_value = coin::burn_for_testing<SUI>(burn_coin);
+            assert!(receive_value == 100_000_000_000, 12);
+            assert!(suifund::project_current_supply(&project_record) == 0, 13);
+            assert!(suifund::project_remain(&project_record) == 1000_000, 14);
+            assert!(suifund::project_balance_value(&project_record) == 0, 15);
+            test_scenario::return_shared(project_record);
+        };
+
+        clock::destroy_for_testing(clk);
+        test_scenario::end(scenario_val);
+    }
+
+    #[test, expected_failure]
+    public fun test_claim_not_begin() {
+
+        let sender = @0xABBA;
+        let alice = @0xCAEE;
+        let bob = @0xCAFE;
+
+        let name = b"Fantastic Project";
+        let description = b"This is a Fantastic Project";
+        let image_url = b"";
+        let linktree = b"";
+        let x = b"";
+        let telegram = b"";
+        let discord = b"";
+        let website = b"";
+        let github = b"";
+        let ratio: u64 = 50;
+        let start_time_ms: u64 = 1000;
+        let time_interval: u64 = 500_000_000;
+        let total_deposit_sui: u64 = 1_000_000_000_000;
+        let amount_per_sui: u64 = 1_000;
+        let min_value_sui: u64 = 1_000_000_000;
+        let max_value_sui: u64 = 0;
+
+        let mut scenario_val = test_scenario::begin(sender);
+        let scenario = &mut scenario_val;
+        let mut clk = clock::create_for_testing(test_scenario::ctx(scenario));
+
+        test_scenario::next_tx(scenario, sender);
+        {
+            suifund::init_for_testing(test_scenario::ctx(scenario));
+        };
+
+        test_scenario::next_tx(scenario, alice);
+        {
+            let mut deploy_record = test_scenario::take_shared<suifund::DeployRecord>(scenario);
+            let mut test_coin = coin::mint_for_testing<SUI>(20_000_000_000, test_scenario::ctx(scenario));
+            suifund::deploy(&mut deploy_record, name, description, image_url, linktree, x, telegram, discord, website, github, start_time_ms, time_interval, total_deposit_sui, ratio, amount_per_sui, 90, min_value_sui, max_value_sui, &mut test_coin, &clk, test_scenario::ctx(scenario));
+            assert!(coin::burn_for_testing(test_coin) == 0, 1);
+            test_scenario::return_shared(deploy_record);
+        };
+
+        clock::set_for_testing(&mut clk, 1000);
+        test_scenario::next_tx(scenario, bob);
+        {
+            let mut project_record = test_scenario::take_shared<suifund::ProjectRecord>(scenario);
+            let mut test_coin = coin::mint_for_testing<SUI>(100_000_000_000, test_scenario::ctx(scenario));
+            let supporter_reward = suifund::do_mint(&mut project_record, &mut test_coin, &clk, test_scenario::ctx(scenario));
+            assert!(suifund::sr_amount(&supporter_reward) == 100 * amount_per_sui, 2);
+            assert!(suifund::sr_balance_value(&supporter_reward) == 50_000_000_000, 3);
+            transfer::public_transfer(supporter_reward, bob);
+            assert!(suifund::project_participants_number(&project_record) == 1, 4);
+            assert!(suifund::project_balance_value(&project_record) == 50_000_000_000, 5);
+            assert!(suifund::project_current_supply(&project_record) == 100_000, 6);
+            assert!(suifund::project_remain(&project_record) == 900_000, 7);
+            assert!(suifund::project_total_supply(&project_record) == 1000_000, 8);
+            assert!(suifund::project_total_transactions(&project_record) == 1, 9);
+            assert!(coin::burn_for_testing(test_coin) == 0, 10);
+            test_scenario::return_shared(project_record);
+        };
+
+        test_scenario::next_tx(scenario, alice);
+        {
+            let mut project_record = test_scenario::take_shared<suifund::ProjectRecord>(scenario);
+            let project_admin_cap = test_scenario::take_from_sender<suifund::ProjectAdminCap>(scenario);
+            let claim_coin = suifund::do_claim(&mut project_record, &project_admin_cap, &clk, test_scenario::ctx(scenario));
+            assert!(coin::burn_for_testing(claim_coin) == 0, 11);
+            test_scenario::return_to_sender(scenario, project_admin_cap);
+            test_scenario::return_shared(project_record);
+        };
+
+        clock::increment_for_testing(&mut clk, 100_000_000);
+        test_scenario::next_tx(scenario, bob);
+        {
+            let mut project_record = test_scenario::take_shared<suifund::ProjectRecord>(scenario);
+            let supporter_reward = test_scenario::take_from_sender<suifund::SupporterReward>(scenario);
+            let burn_coin = suifund::do_burn(&mut project_record, supporter_reward, &clk, test_scenario::ctx(scenario));
+            let receive_value = coin::burn_for_testing<SUI>(burn_coin);
+            assert!(receive_value == 100_000_000_000, 12);
+            assert!(suifund::project_current_supply(&project_record) == 0, 13);
+            assert!(suifund::project_remain(&project_record) == 1000_000, 14);
+            assert!(suifund::project_balance_value(&project_record) == 0, 15);
+            test_scenario::return_shared(project_record);
         };
 
         clock::destroy_for_testing(clk);
