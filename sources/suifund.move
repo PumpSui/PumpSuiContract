@@ -877,6 +877,14 @@ module suifund::suifund {
         project_record.total_transactions
     }
 
+    public fun project_begin_status(project_record: &ProjectRecord): bool {
+        project_record.begin
+    }
+
+    public fun project_threshold_ratio(project_record: &ProjectRecord): u64 {
+        project_record.threshold_ratio
+    }
+
     public fun project_min_value_sui(project_record: &ProjectRecord): u64 {
         project_record.min_value_sui
     }
