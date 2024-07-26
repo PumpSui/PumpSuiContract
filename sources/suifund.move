@@ -979,6 +979,7 @@ module suifund::suifund {
         name: Name,
         value: Value
     ) {
+        assert!(project_record.version == VERSION, EVersionMismatch);
         df::add<Name, Value>(&mut project_record.id, name, value);
     }
 
@@ -986,6 +987,7 @@ module suifund::suifund {
         project_record: &mut ProjectRecord, 
         name: Name
     ): Value {
+        assert!(project_record.version == VERSION, EVersionMismatch);
         df::remove<Name, Value>(&mut project_record.id, name)
     }
 
@@ -993,6 +995,7 @@ module suifund::suifund {
         project_record: &ProjectRecord, 
         name: Name
     ): &Value {
+        assert!(project_record.version == VERSION, EVersionMismatch);
         df::borrow<Name, Value>(&project_record.id, name)
     }
 
@@ -1000,6 +1003,7 @@ module suifund::suifund {
         project_record: &mut ProjectRecord,
         name: Name
     ): &mut Value {
+        assert!(project_record.version == VERSION, EVersionMismatch);
         df::borrow_mut<Name, Value>(&mut project_record.id, name)
     }
 
@@ -1007,6 +1011,7 @@ module suifund::suifund {
         project_record: &ProjectRecord, 
         name: Name
     ): bool {
+        assert!(project_record.version == VERSION, EVersionMismatch);
         df::exists_<Name>(&project_record.id, name)
     }
 
