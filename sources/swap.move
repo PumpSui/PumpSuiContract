@@ -1,6 +1,6 @@
 module suifund::swap {
     use std::type_name;
-    use sui::coin::{Self, Coin, TreasuryCap};
+    use sui::coin::{Self, Coin, TreasuryCap, CoinMetadata};
     use suifund::suifund::{Self, ProjectRecord, ProjectAdminCap, SupporterReward};
 
     const COIN_TYPE: vector<u8> = b"coin_type";
@@ -8,6 +8,7 @@ module suifund::swap {
     const STORAGE: vector<u8> = b"storage_sr";
 
     const EAlreadyInit: u64 = 0;
+    const EExpectZeroDecimals: u64 = 1;
     const EInvalidTreasuryCap: u64 = 2;
     const ENotInit: u64 = 3;
     const ENotSameProject: u64 = 4;
@@ -17,10 +18,12 @@ module suifund::swap {
         project_record: &mut ProjectRecord,
         project_admin_cap: &ProjectAdminCap,
         treasury_cap: TreasuryCap<T>,
+        metadata: &CoinMetadata<T>
     ) {
         assert!(!suifund::exists_in_project<std::ascii::String>(project_record, std::ascii::string(COIN_TYPE)), EAlreadyInit);
         suifund::check_project_cap(project_record, project_admin_cap);
         assert!(coin::total_supply<T>(&treasury_cap) == 0, EInvalidTreasuryCap);
+        assert!(coin::get_decimals<T>(metadata) == 0, EExpectZeroDecimals);
 
         let coin_type = type_name::into_string(type_name::get_with_original_ids<T>());
         suifund::add_df_in_project<std::ascii::String, std::ascii::String>(project_record, std::ascii::string(COIN_TYPE), coin_type);
@@ -87,6 +90,16 @@ module suifund::swap {
     ) {
         let sr = coin_to_sr<T>(project_record, sr_coin, ctx);
         transfer::public_transfer(sr, ctx.sender());
+    }
+
+    // for update CoinMetadata purposes
+    public fun borrow_treasury_cap<T>(
+        project_record: &mut ProjectRecord,
+        project_admin_cap: &ProjectAdminCap
+    ): &TreasuryCap<T> {
+        suifund::check_project_cap(project_record, project_admin_cap);
+        assert!(suifund::exists_in_project<std::ascii::String>(project_record, std::ascii::string(COIN_TYPE)), ENotInit);
+        suifund::borrow_in_project<std::ascii::String, TreasuryCap<T>>(project_record, std::ascii::string(TREASURY))
     }
 
     // ======== Read Functions =========
