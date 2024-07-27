@@ -949,6 +949,10 @@ module suifund::suifund {
         sp_rwd.name
     }
 
+    public fun sr_project_id(sp_rwd: &SupporterReward): ID {
+        sp_rwd.project_id
+    }
+
     public fun sr_image(sp_rwd: &SupporterReward): Url {
         sp_rwd.image
     }
