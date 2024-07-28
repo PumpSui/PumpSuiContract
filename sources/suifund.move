@@ -1185,6 +1185,7 @@ module suifund::suifund {
         let ProjectRecord {
             id,
             ..,
+            balance,
             participants,
             minted_per_user,
             mut thread,
