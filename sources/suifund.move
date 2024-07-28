@@ -60,6 +60,7 @@ module suifund::suifund {
         id: UID,
         version: u64,
         record: Table<std::ascii::String, ID>,
+        categorys: Table<std::ascii::String, TableVec<ID>>,
         balance: Balance<SUI>,
         base_fee: u64,
         ratio: u64,
@@ -71,6 +72,7 @@ module suifund::suifund {
         creator: address,
         name: std::ascii::String,
         description: std::string::String,
+        category: std::ascii::String,
         image_url: Url,
         linktree: Url,
         x: Url,
@@ -162,7 +164,7 @@ module suifund::suifund {
     // ======== Functions =========
     fun init(otw: SUIFUND, ctx: &mut TxContext) {
         let deployer = ctx.sender();
-        let deploy_record = DeployRecord { id: object::new(ctx), version: VERSION, record: table::new(ctx), balance: balance::zero<SUI>(), base_fee: BASE_FEE, ratio: 1 };
+        let deploy_record = DeployRecord { id: object::new(ctx), version: VERSION, record: table::new(ctx), categorys: table::new(ctx), balance: balance::zero<SUI>(), base_fee: BASE_FEE, ratio: 1 };
         transfer::share_object(deploy_record);
         let admin_cap = AdminCap { id: object::new(ctx) };
         transfer::public_transfer(admin_cap, deployer);
@@ -217,6 +219,7 @@ module suifund::suifund {
         deploy_record: &mut DeployRecord,
         name: vector<u8>,
         description: vector<u8>,
+        category: vector<u8>,
         image_url: vector<u8>,
         linktree: vector<u8>,
         x: vector<u8>,
@@ -240,6 +243,7 @@ module suifund::suifund {
             deploy_record,
             name,
             description,
+            category,
             image_url,
             linktree,
             x,
@@ -266,6 +270,7 @@ module suifund::suifund {
         deploy_record: &mut DeployRecord,
         name: vector<u8>,
         description: vector<u8>,
+        category: vector<u8>,
         image_url: vector<u8>,
         linktree: vector<u8>,
         x: vector<u8>,
@@ -302,6 +307,8 @@ module suifund::suifund {
         let deploy_coin = coin::split<SUI>(fee, deploy_fee, ctx);
         balance::join<SUI>(&mut deploy_record.balance, coin::into_balance<SUI>(deploy_coin));
 
+        let category = std::ascii::string(category);
+
         let total_supply = total_deposit_sui / SUI_BASE * amount_per_sui;
         let project_name = std::ascii::string(name); 
         let project_record = ProjectRecord {
@@ -310,6 +317,7 @@ module suifund::suifund {
             creator: sender,
             name: project_name,
             description: std::string::utf8(description),
+            category,
             image_url: url::new_unsafe_from_bytes(image_url),
             linktree: url::new_unsafe_from_bytes(linktree),
             x: url::new_unsafe_from_bytes(x),
@@ -343,6 +351,16 @@ module suifund::suifund {
         };
 
         table::add<std::ascii::String, ID>(&mut deploy_record.record, project_name, project_id);
+
+        if (std::ascii::length(&category) > 0) {
+            if (table::contains<std::ascii::String, TableVec<ID>>(&deploy_record.categorys, category)) {
+                let category_record_bm = table::borrow_mut<std::ascii::String, TableVec<ID>>(&mut deploy_record.categorys, category);
+                table_vec::push_back<ID>(category_record_bm, project_id);
+            } else {
+                let category_record = table_vec::singleton<ID>(project_id, ctx);
+                table::add<std::ascii::String, TableVec<ID>>(&mut deploy_record.categorys, category, category_record);
+            };
+        };
 
         transfer::share_object(project_record);
         emit(DeployEvent {
@@ -1109,6 +1127,7 @@ module suifund::suifund {
     public fun new_project_record_for_testing(
         name: vector<u8>,
         description: vector<u8>,
+        category: vector<u8>,
         image_url: vector<u8>,
         linktree: vector<u8>,
         x: vector<u8>,
@@ -1133,6 +1152,7 @@ module suifund::suifund {
             creator: ctx.sender(),
             name: std::ascii::string(name),
             description: std::string::utf8(description),
+            category: std::ascii::string(category),
             image_url: url::new_unsafe_from_bytes(image_url),
             linktree: url::new_unsafe_from_bytes(linktree),
             x: url::new_unsafe_from_bytes(x),
@@ -1164,31 +1184,7 @@ module suifund::suifund {
     public fun drop_project_record_for_testing(project_record: ProjectRecord) {
         let ProjectRecord {
             id,
-            version: _,
-            creator: _,
-            name: _,
-            description: _,
-            image_url: _,
-            linktree: _,
-            x: _,
-            telegram: _,
-            discord: _,
-            website: _,
-            github: _,
-            cancel: _,
-            balance,
-            ratio: _,
-            start_time_ms: _,
-            end_time_ms: _,
-            total_supply: _,
-            amount_per_sui: _,
-            remain: _,
-            current_supply: _,
-            total_transactions: _,
-            threshold_ratio: _,
-            begin: _,
-            min_value_sui: _,
-            max_value_sui: _,
+            ..,
             participants,
             minted_per_user,
             mut thread,
