@@ -606,6 +606,8 @@ module suifund::suifund {
 
         if (!project_record.begin) {
             project_record.remain = project_record.remain + sp_rwd.amount;
+            let sender_minted = &mut project_record.minted_per_user[sender];
+            *sender_minted = *sender_minted - sp_rwd.amount;
         };
 
         let SupporterReward {
