@@ -354,7 +354,7 @@ module suifund::suifund {
 
         if (std::ascii::length(&category) > 0) {
             if (table::contains<std::ascii::String, TableVec<ID>>(&deploy_record.categorys, category)) {
-                let category_record_bm = table::borrow_mut<std::ascii::String, TableVec<ID>>(&mut deploy_record.categorys, category);
+                let category_record_bm = &mut deploy_record.categorys[category];
                 table_vec::push_back<ID>(category_record_bm, project_id);
             } else {
                 let category_record = table_vec::singleton<ID>(project_id, ctx);
@@ -440,7 +440,7 @@ module suifund::suifund {
         assert!(sui_value >= project_record.min_value_sui, ETooLittle);
 
         if (table::contains<address, u64>(&project_record.minted_per_user, sender)) {
-            let minted_value = table::borrow_mut<address, u64>(&mut project_record.minted_per_user, sender);
+            let minted_value = &mut project_record.minted_per_user[sender];
             if (project_record.max_value_sui > 0 && sui_value + *minted_value > project_record.max_value_sui) {
                 sui_value = project_record.max_value_sui - *minted_value;
             };
@@ -694,7 +694,7 @@ module suifund::suifund {
         idx: u64,
         ctx: &TxContext
     ) {
-        let comment_bm = table_vec::borrow_mut(&mut project_record.thread, idx);
+        let comment_bm = &mut project_record.thread[idx];
         comment::like_comment(comment_bm, ctx);
     }
 
@@ -703,7 +703,7 @@ module suifund::suifund {
         idx: u64,
         ctx: &TxContext
     ) {
-        let comment_bm = table_vec::borrow_mut(&mut project_record.thread, idx);
+        let comment_bm = &mut project_record.thread[idx];
         comment::unlike_comment(comment_bm, ctx);
     }
 
