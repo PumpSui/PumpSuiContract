@@ -179,6 +179,8 @@ module suifund::suifund {
             std::string::utf8(b"name"),
             std::string::utf8(b"image_url"),
             std::string::utf8(b"project_url"),
+            std::string::utf8(b"market_url"),
+            std::string::utf8(b"coinswap_url"),
             std::string::utf8(b"start"),
             std::string::utf8(b"end"),
             std::string::utf8(b"alert"),
@@ -187,10 +189,16 @@ module suifund::suifund {
         vector::append(&mut image_url, b"{id}");
         let mut project_url: vector<u8> = b"https://pumpsui.com/project/";
         vector::append(&mut project_url, b"{project_id}");
+        let mut market_url: vector<u8> = b"https://pumpsui.com/market/";
+        vector::append(&mut market_url, b"{project_id}");
+        let mut coinswap_url: vector<u8> = b"https://pumpsui.com/coinswap/";
+        vector::append(&mut coinswap_url, b"{project_id}");
         let values = vector[
             std::string::utf8(b"Supporter Ticket"),
             std::string::utf8(image_url),
             std::string::utf8(project_url),
+            std::string::utf8(market_url),
+            std::string::utf8(coinswap_url),
             std::string::utf8(b"{start}"),
             std::string::utf8(b"{end}"),
             std::string::utf8(b"!!!Do not visit any links in the pictures, as they may be SCAMs."),
