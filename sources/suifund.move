@@ -1091,6 +1091,7 @@ module suifund::suifund {
         value: Value
     ) {
         let name = type_name::into_string(type_name::get_with_original_ids<Value>());
+        assert!(sp_rwd.attach_df == 0);
         sp_rwd.attach_df = sp_rwd.attach_df + 1;
         df::add(&mut sp_rwd.id, name, value);
     }
