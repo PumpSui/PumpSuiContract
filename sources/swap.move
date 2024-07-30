@@ -7,12 +7,13 @@ module suifund::swap {
     const TREASURY: vector<u8> = b"treasury";
     const STORAGE: vector<u8> = b"storage_sr";
 
-    const EAlreadyInit: u64 = 0;
-    const EExpectZeroDecimals: u64 = 1;
-    const EInvalidTreasuryCap: u64 = 2;
-    const ENotInit: u64 = 3;
-    const ENotSameProject: u64 = 4;
-    const EZeroCoin: u64 = 5;
+    const EAlreadyInit: u64         = 100;
+    const EExpectZeroDecimals: u64  = 101;
+    const EInvalidTreasuryCap: u64  = 102;
+    const ENotInit: u64             = 103;
+    const ENotSameProject: u64      = 104;
+    const EZeroCoin: u64            = 105;
+    const ENotBegin: u64            = 106;
 
     public entry fun init_swap_by_project_admin<T>(
         project_admin_cap: &ProjectAdminCap,
@@ -39,6 +40,7 @@ module suifund::swap {
         metadata: &CoinMetadata<T>
     ) {
         assert!(!suifund::exists_in_project<std::ascii::String>(project_record, std::ascii::string(COIN_TYPE)), EAlreadyInit);
+        assert!(suifund::project_begin_status(project_record), ENotBegin);
         assert!(coin::total_supply<T>(&treasury_cap) == 0, EInvalidTreasuryCap);
         assert!(coin::get_decimals<T>(metadata) == 0, EExpectZeroDecimals);
 

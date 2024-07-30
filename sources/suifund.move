@@ -60,7 +60,7 @@ module suifund::suifund {
         id: UID,
         version: u64,
         record: Table<std::ascii::String, ID>,
-        categorys: Table<std::ascii::String, TableVec<ID>>,
+        categorys: Table<std::ascii::String, Table<std::ascii::String, ID>>,
         balance: Balance<SUI>,
         base_fee: u64,
         ratio: u64,
@@ -158,6 +158,12 @@ module suifund::suifund {
         project_name: std::ascii::String,
         sender: address,
         value: u64,
+    }
+
+    public struct CancelProjectEvent has copy, drop {
+        project_name: std::ascii::String,
+        project_id: ID,
+        sender: address,
     }
 
 
@@ -353,12 +359,13 @@ module suifund::suifund {
         table::add<std::ascii::String, ID>(&mut deploy_record.record, project_name, project_id);
 
         if (std::ascii::length(&category) > 0) {
-            if (table::contains<std::ascii::String, TableVec<ID>>(&deploy_record.categorys, category)) {
+            if (table::contains<std::ascii::String, Table<std::ascii::String, ID>>(&deploy_record.categorys, category)) {
                 let category_record_bm = &mut deploy_record.categorys[category];
-                table_vec::push_back<ID>(category_record_bm, project_id);
+                table::add<std::ascii::String, ID>(category_record_bm, project_name, project_id);
             } else {
-                let category_record = table_vec::singleton<ID>(project_id, ctx);
-                table::add<std::ascii::String, TableVec<ID>>(&mut deploy_record.categorys, category, category_record);
+                let mut category_record = table::new<std::ascii::String, ID>(ctx);
+                table::add<std::ascii::String, ID>(&mut category_record, project_name, project_id);
+                table::add<std::ascii::String, Table<std::ascii::String, ID>>(&mut deploy_record.categorys, category, category_record);
             };
         };
 
@@ -806,12 +813,13 @@ module suifund::suifund {
     }
 
     public fun cancel_project_by_team(
-        project_record: &mut ProjectRecord, 
-        project_admin_cap: &ProjectAdminCap
+        project_admin_cap: &ProjectAdminCap,
+        deploy_record: &mut DeployRecord,
+        project_record: &mut ProjectRecord,
+        ctx: &TxContext
     ) {
         check_project_cap(project_record, project_admin_cap);
-        assert!(!project_record.begin, EAlreadyBegin);
-        project_record.cancel = true;
+        cancel_project(deploy_record, project_record, ctx);
     }
 
     public fun burn_project_admin_cap(
@@ -935,8 +943,13 @@ module suifund::suifund {
 
     // ======= Admin functions ========
     // In case of ProjectAdminCap is lost
-    public fun cancel_project_by_admin(_: &AdminCap, project_record: &mut ProjectRecord) {
-        project_record.cancel = true;
+    public fun cancel_project_by_admin(
+        _: &AdminCap, 
+        deploy_record: &mut DeployRecord,
+        project_record: &mut ProjectRecord,
+        ctx: &TxContext
+    ) {
+        cancel_project(deploy_record, project_record, ctx);
     }
 
     #[allow(lint(self_transfer))]
@@ -1095,6 +1108,29 @@ module suifund::suifund {
             end,
             attach_df: 0,
         }
+    }
+
+    fun cancel_project(
+        deploy_record: &mut DeployRecord,
+        project_record: &mut ProjectRecord, 
+        ctx: &TxContext
+    ) {
+        assert!(!project_record.begin, EAlreadyBegin);
+        project_record.cancel = true;
+
+        let project_id = table::remove<std::ascii::String, ID>(&mut deploy_record.record, project_record.name);
+        if (std::ascii::length(&project_record.category) > 0) {
+            let category_record_bm = &mut deploy_record.categorys[project_record.category];
+            table::remove<std::ascii::String, ID>(category_record_bm, project_record.name);
+        };
+
+        emit(
+            CancelProjectEvent {
+                project_name: project_record.name,
+                project_id,
+                sender: ctx.sender(),
+            }
+        );
     }
 
     // ========= Test Functions =========
