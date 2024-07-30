@@ -1,7 +1,7 @@
 module suifund::swap {
     use std::type_name;
     use sui::coin::{Self, Coin, TreasuryCap, CoinMetadata};
-    use suifund::suifund::{Self, ProjectRecord, ProjectAdminCap, SupporterReward};
+    use suifund::suifund::{Self, ProjectRecord, ProjectAdminCap, SupporterReward, AdminCap};
 
     const COIN_TYPE: vector<u8> = b"coin_type";
     const TREASURY: vector<u8> = b"treasury";
@@ -14,14 +14,31 @@ module suifund::swap {
     const ENotSameProject: u64 = 4;
     const EZeroCoin: u64 = 5;
 
-    public entry fun init_swap<T>(
-        project_record: &mut ProjectRecord,
+    public entry fun init_swap_by_project_admin<T>(
         project_admin_cap: &ProjectAdminCap,
+        project_record: &mut ProjectRecord,
+        treasury_cap: TreasuryCap<T>,
+        metadata: &CoinMetadata<T>
+    ) {
+        suifund::check_project_cap(project_record, project_admin_cap);
+        init_swap<T>(project_record, treasury_cap, metadata);
+    }
+
+    public entry fun init_swap_by_admin<T>(
+        _: &AdminCap,
+        project_record: &mut ProjectRecord,
+        treasury_cap: TreasuryCap<T>,
+        metadata: &CoinMetadata<T>
+    ) {
+        init_swap<T>(project_record, treasury_cap, metadata);
+    }
+
+    fun init_swap<T>(
+        project_record: &mut ProjectRecord,
         treasury_cap: TreasuryCap<T>,
         metadata: &CoinMetadata<T>
     ) {
         assert!(!suifund::exists_in_project<std::ascii::String>(project_record, std::ascii::string(COIN_TYPE)), EAlreadyInit);
-        suifund::check_project_cap(project_record, project_admin_cap);
         assert!(coin::total_supply<T>(&treasury_cap) == 0, EInvalidTreasuryCap);
         assert!(coin::get_decimals<T>(metadata) == 0, EExpectZeroDecimals);
 
@@ -93,11 +110,19 @@ module suifund::swap {
     }
 
     // for update CoinMetadata purposes
-    public fun borrow_treasury_cap<T>(
+    public fun borrow_treasury_cap_by_project_admin<T>(
         project_record: &mut ProjectRecord,
         project_admin_cap: &ProjectAdminCap
     ): &TreasuryCap<T> {
         suifund::check_project_cap(project_record, project_admin_cap);
+        assert!(suifund::exists_in_project<std::ascii::String>(project_record, std::ascii::string(COIN_TYPE)), ENotInit);
+        suifund::borrow_in_project<std::ascii::String, TreasuryCap<T>>(project_record, std::ascii::string(TREASURY))
+    }
+
+    public fun borrow_treasury_cap_by_admin<T>(
+        _: &AdminCap,
+        project_record: &mut ProjectRecord
+    ): &TreasuryCap<T> {
         assert!(suifund::exists_in_project<std::ascii::String>(project_record, std::ascii::string(COIN_TYPE)), ENotInit);
         suifund::borrow_in_project<std::ascii::String, TreasuryCap<T>>(project_record, std::ascii::string(TREASURY))
     }
