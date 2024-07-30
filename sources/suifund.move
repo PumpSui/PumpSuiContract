@@ -750,6 +750,20 @@ module suifund::suifund {
         });
     }
 
+    public entry fun edit_linktree_url(
+        project_record: &mut ProjectRecord, 
+        project_admin_cap: &ProjectAdminCap,
+        linktree: vector<u8>,
+        ctx: &TxContext
+    ) {
+        check_project_cap(project_record, project_admin_cap);
+        project_record.linktree = url::new_unsafe_from_bytes(linktree);
+        emit(EditProject {
+            project_name: project_record.name,
+            editor: ctx.sender(),
+        });
+    }
+
     public entry fun edit_x_url(
         project_record: &mut ProjectRecord, 
         project_admin_cap: &ProjectAdminCap,
@@ -855,6 +869,10 @@ module suifund::suifund {
 
     public fun project_image_url(project_record: &ProjectRecord): Url {
         project_record.image_url
+    }
+
+    public fun project_linktree_url(project_record: &ProjectRecord): Url {
+        project_record.linktree
     }
 
     public fun project_x_url(project_record: &ProjectRecord): Url {
