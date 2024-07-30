@@ -1130,6 +1130,10 @@ module suifund::suifund {
         if (std::ascii::length(&project_record.category) > 0) {
             let category_record_bm = &mut deploy_record.categorys[project_record.category];
             table::remove<std::ascii::String, ID>(category_record_bm, project_record.name);
+            if (table::is_empty(category_record_bm)) {
+                let category_record = table::remove<std::ascii::String, Table<std::ascii::String, ID>>(&mut deploy_record.categorys, project_record.category);
+                table::destroy_empty<std::ascii::String, ID>(category_record);
+            };
         };
 
         emit(
