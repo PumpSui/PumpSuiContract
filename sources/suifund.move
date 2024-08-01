@@ -596,7 +596,7 @@ module suifund::suifund {
         clk: &Clock,
         ctx: &mut TxContext
     ): Coin<SUI> {
-        assert!(project_record.name == sp_rwd.name, ENotSameProject);
+        assert!(object::id(project_record) == sp_rwd.project_id, ENotSameProject);
         assert!(project_record.version == VERSION, EVersionMismatch);
         assert!(sp_rwd.attach_df == 0, ENotBurnable);
 
