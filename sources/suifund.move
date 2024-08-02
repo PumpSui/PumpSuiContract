@@ -135,12 +135,14 @@ module suifund::suifund {
 
     public struct MintEvent has copy, drop {
         project_name: std::ascii::String,
+        project_id: ID,
         sender: address,
         amount: u64,
     }
 
     public struct BurnEvent has copy, drop {
         project_name: std::ascii::String,
+        project_id: ID,
         sender: address,
         amount: u64,
         withdraw_value: u64,
@@ -492,8 +494,11 @@ module suifund::suifund {
             project_record.begin = true;
         };
 
+        let project_id = object::id(project_record);
+
         emit(MintEvent {
             project_name: project_record.name,
+            project_id,
             sender,
             amount,
         });
@@ -501,7 +506,7 @@ module suifund::suifund {
         let locked_sui = coin::into_balance<SUI>(coin::split<SUI>(fee_sui, locked_sui_value, ctx));
         new_supporter_reward(
             project_record.name,
-            object::id(project_record),
+            project_id,
             project_record.image_url,
             amount,
             locked_sui,
@@ -622,19 +627,18 @@ module suifund::suifund {
         if (!project_record.begin) {
             project_record.remain = project_record.remain + sp_rwd.amount;
             let sender_minted = &mut project_record.minted_per_user[sender];
-            *sender_minted = *sender_minted - sp_rwd.amount;
+            if (*sender_minted >= sp_rwd.amount) {
+                *sender_minted = *sender_minted - sp_rwd.amount;
+            };
         };
 
         let SupporterReward {
             id,
             name,
-            project_id: _,
-            image: _,
+            project_id,
             amount,
             balance,
-            start: _,
-            end: _,
-            attach_df: _
+            ..
         } = sp_rwd;
 
         let withdraw_balance: Balance<SUI> = balance::split<SUI>(&mut project_record.balance, withdraw_value);
@@ -646,6 +650,7 @@ module suifund::suifund {
 
         emit(BurnEvent {
             project_name: name,
+            project_id,
             sender,
             amount,
             withdraw_value,
