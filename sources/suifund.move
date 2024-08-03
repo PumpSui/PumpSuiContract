@@ -52,6 +52,7 @@ module suifund::suifund {
     const ENotBegin: u64 = 21;
     const EAlreadyBegin: u64 = 22;
     const ENotCanceled: u64 = 23;
+    const ENoRemain: u64 = 24;
 
     // ======== Types =========
     public struct SUIFUND has drop {}
@@ -452,6 +453,7 @@ module suifund::suifund {
         // assert!(now <= project_record.end_time_ms, EEnded);
         assert!(project_record.version == VERSION, EVersionMismatch);
         assert!(!project_record.cancel, EProjectCanceled);
+        assert!(project_record.remain > 0, ENoRemain);
 
         let mut sui_value = coin::value(fee_sui);
         assert!(sui_value >= project_record.min_value_sui, ETooLittle);
