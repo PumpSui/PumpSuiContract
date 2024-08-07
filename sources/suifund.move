@@ -625,13 +625,10 @@ module suifund::suifund {
         let inside_value = balance::value<SUI>(&sp_rwd.balance);
 
         project_record.current_supply = project_record.current_supply - sp_rwd.amount;
-
-        if (!project_record.begin) {
-            project_record.remain = project_record.remain + sp_rwd.amount;
-            let sender_minted = &mut project_record.minted_per_user[sender];
-            if (*sender_minted >= sp_rwd.amount) {
-                *sender_minted = *sender_minted - sp_rwd.amount;
-            };
+        project_record.remain = project_record.remain + sp_rwd.amount;
+        let sender_minted = &mut project_record.minted_per_user[sender];
+        if (*sender_minted >= sp_rwd.amount) {
+            *sender_minted = *sender_minted - sp_rwd.amount;
         };
 
         let SupporterReward {
