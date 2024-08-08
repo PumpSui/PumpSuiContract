@@ -744,9 +744,15 @@ module suifund::suifund {
         project_record: &mut ProjectRecord, 
         project_admin_cap: &ProjectAdminCap,
         image_url: vector<u8>,
-        ctx: &TxContext
+        deploy_record: &mut DeployRecord,
+        paid: &mut Coin<SUI>,
+        ctx: &mut TxContext
     ) {
         check_project_cap(project_record, project_admin_cap);
+
+        let edit_coin = coin::split<SUI>(paid, SUI_BASE / 10, ctx);
+        balance::join<SUI>(&mut deploy_record.balance, coin::into_balance<SUI>(edit_coin));
+
         project_record.image_url = url::new_unsafe_from_bytes(image_url);
         emit(EditProject {
             project_name: project_record.name,
