@@ -225,7 +225,8 @@ module suifund::suifund {
         deploy_ratio: u64
     ): u64 {
         assert!(deploy_ratio <= 5, EImproperRatio);
-        let cal_value: u64 = total_deposit_sui * project_ratio * deploy_ratio / 10000;
+        let mut cal_value: u64 = mul_div(total_deposit_sui, project_ratio, 100);
+        cal_value = mul_div(cal_value, deploy_ratio, 100);
         let fee_value: u64 =  if (cal_value > base_fee) {
             cal_value
         } else { base_fee };
