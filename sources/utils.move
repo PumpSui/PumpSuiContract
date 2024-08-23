@@ -1,5 +1,4 @@
 module suifund::utils {
-
     public fun mul_div(x: u64, y: u64, z: u64): u64 {
         (((x as u128) * (y as u128) / (z as u128)) as u64)
     }
@@ -13,5 +12,4 @@ module suifund::utils {
             mul_div(init_value, (end_time - now_ms), (end_time - start_time))
         }
     }
-
 }
