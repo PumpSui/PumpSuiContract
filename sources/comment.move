@@ -1,10 +1,6 @@
 module suifund::comment {
     use std::string::{String, utf8};
-    use sui::{
-        url::{Self, Url},
-        clock::{Self, Clock},
-        vec_set::{Self, VecSet}
-    };
+    use sui::{clock::Clock, url::{Self, Url}, vec_set::{Self, VecSet}};
 
     public struct Comment has key, store {
         id: UID,
@@ -13,15 +9,16 @@ module suifund::comment {
         media_link: Url,
         content: String,
         timestamp: u64,
+        // TODO: won't hold too many comments! may hit object size limit 256KB
         likes: VecSet<address>,
     }
 
     public fun new_comment(
-        reply: Option<ID>, 
-        media_link: vector<u8>, 
-        content: vector<u8>, 
-        clk: &Clock,
-        ctx: &mut TxContext
+        reply: Option<ID>,
+        media_link: vector<u8>,
+        content: vector<u8>,
+        clock: &Clock,
+        ctx: &mut TxContext,
     ): Comment {
         Comment {
             id: object::new(ctx),
@@ -29,33 +26,25 @@ module suifund::comment {
             creator: ctx.sender(),
             media_link: url::new_unsafe_from_bytes(media_link),
             content: utf8(content),
-            timestamp: clock::timestamp_ms(clk),
-            likes: vec_set::empty<address>(),
+            timestamp: clock.timestamp_ms(),
+            likes: vec_set::empty(),
         }
     }
 
     public fun drop_comment(comment: Comment) {
-        let Comment {
-            id,
-            reply: _,
-            creator: _,
-            media_link: _,
-            content: _,
-            timestamp: _,
-            likes: _,
-        } = comment;
-        object::delete(id);
+        let Comment { id, .. } = comment;
+        id.delete()
     }
 
     public fun like_comment(comment: &mut Comment, ctx: &TxContext) {
-        vec_set::insert<address>(&mut comment.likes, ctx.sender());
+        comment.likes.insert(ctx.sender());
     }
 
     public fun unlike_comment(comment: &mut Comment, ctx: &TxContext) {
-        vec_set::remove<address>(&mut comment.likes, &ctx.sender());
+        comment.likes.remove(&ctx.sender());
     }
 
     public fun like_count(comment: &Comment): u64 {
-        vec_set::size(&comment.likes)
+        comment.likes.size()
     }
 }

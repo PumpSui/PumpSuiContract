@@ -1,26 +1,23 @@
 module suifund::suifund {
-    use std::type_name;
+    use std::{ascii::String, type_name};
     use sui::{
+        balance::{Self, Balance},
+        clock::{Self, Clock},
         coin::{Self, Coin},
+        display,
+        dynamic_field as df,
+        event::emit,
+        package,
+        sui::SUI,
         table::{Self, Table},
         table_vec::{Self, TableVec},
-        event::emit,
-        sui::SUI,
-        package,
-        display,
-        balance::{Self, Balance},
-        url::{Self, Url},
-        clock::{Self, Clock},
-        dynamic_field as df
+        url::{Self, Url}
     };
     use sui_system::{
         staking_pool::StakedSui,
         sui_system::{SuiSystemState, request_add_stake_non_entry, request_withdraw_stake_non_entry}
     };
-    use suifund::{
-        comment::{Self, Comment},
-        utils::{mul_div, get_remain_value}
-    };
+    use suifund::{comment::{Self, Comment}, utils::{mul_div, get_remain_value}};
 
     // ======== Constants =========
     const VERSION: u64 = 1;
@@ -60,8 +57,8 @@ module suifund::suifund {
     public struct DeployRecord has key {
         id: UID,
         version: u64,
-        record: Table<std::ascii::String, ID>,
-        categorys: Table<std::ascii::String, Table<std::ascii::String, ID>>,
+        record: Table<String, ID>,
+        categories: Table<String, Table<String, ID>>,
         balance: Balance<SUI>,
         base_fee: u64,
         ratio: u64,
@@ -71,9 +68,9 @@ module suifund::suifund {
         id: UID,
         version: u64,
         creator: address,
-        name: std::ascii::String,
+        name: String,
         description: std::string::String,
-        category: std::ascii::String,
+        category: String,
         image_url: Url,
         linktree: Url,
         x: Url,
@@ -87,15 +84,15 @@ module suifund::suifund {
         start_time_ms: u64,
         end_time_ms: u64,
         total_supply: u64,
-        amount_per_sui: u64, 
+        amount_per_sui: u64,
         remain: u64,
         current_supply: u64,
         total_transactions: u64,
         threshold_ratio: u64,
         begin: bool,
-        min_value_sui: u64, 
+        min_value_sui: u64,
         max_value_sui: u64,
-        participants: TableVec<address>, 
+        participants: TableVec<address>,
         minted_per_user: Table<address, u64>,
         thread: TableVec<Comment>,
     }
@@ -111,7 +108,7 @@ module suifund::suifund {
 
     public struct SupporterReward has key, store {
         id: UID,
-        name: std::ascii::String,
+        name: String,
         project_id: ID,
         image: Url,
         amount: u64,
@@ -124,25 +121,25 @@ module suifund::suifund {
     // ======== Events =========
     public struct DeployEvent has copy, drop {
         project_id: ID,
-        project_name: std::ascii::String,
+        project_name: String,
         deployer: address,
         deploy_fee: u64,
     }
 
     public struct EditProject has copy, drop {
-        project_name: std::ascii::String,
+        project_name: String,
         editor: address,
     }
 
     public struct MintEvent has copy, drop {
-        project_name: std::ascii::String,
+        project_name: String,
         project_id: ID,
         sender: address,
         amount: u64,
     }
 
     public struct BurnEvent has copy, drop {
-        project_name: std::ascii::String,
+        project_name: String,
         project_id: ID,
         sender: address,
         amount: u64,
@@ -158,60 +155,73 @@ module suifund::suifund {
     }
 
     public struct ClaimStreamPayment has copy, drop {
-        project_name: std::ascii::String,
+        project_name: String,
         sender: address,
         value: u64,
     }
 
     public struct CancelProjectEvent has copy, drop {
-        project_name: std::ascii::String,
+        project_name: String,
         project_id: ID,
         sender: address,
     }
 
-
     // ======== Functions =========
     fun init(otw: SUIFUND, ctx: &mut TxContext) {
         let deployer = ctx.sender();
-        let deploy_record = DeployRecord { id: object::new(ctx), version: VERSION, record: table::new(ctx), categorys: table::new(ctx), balance: balance::zero<SUI>(), base_fee: BASE_FEE, ratio: 1 };
+        let deploy_record = DeployRecord {
+            id: object::new(ctx),
+            version: VERSION,
+            record: table::new(ctx),
+            categories: table::new(ctx),
+            balance: balance::zero<SUI>(),
+            base_fee: BASE_FEE,
+            ratio: 1,
+        };
         transfer::share_object(deploy_record);
         let admin_cap = AdminCap { id: object::new(ctx) };
         transfer::public_transfer(admin_cap, deployer);
 
         let keys = vector[
-            std::string::utf8(b"name"),
-            std::string::utf8(b"image_url"),
-            std::string::utf8(b"project_url"),
-            std::string::utf8(b"market_url"),
-            std::string::utf8(b"coinswap_url"),
-            std::string::utf8(b"start"),
-            std::string::utf8(b"end"),
-            std::string::utf8(b"alert"),
+            b"name".to_string(),
+            b"image_url".to_string(),
+            b"project_url".to_string(),
+            b"market_url".to_string(),
+            b"coinswap_url".to_string(),
+            b"start".to_string(),
+            b"end".to_string(),
+            b"alert".to_string(),
         ];
+
         let mut image_url: vector<u8> = b"https://pumpsuiapi.com/objectId/";
-        vector::append(&mut image_url, b"{id}");
+        image_url.append(b"{id}");
+
         let mut project_url: vector<u8> = b"https://pumpsui.com/project/";
-        vector::append(&mut project_url, b"{project_id}");
+        project_url.append(b"{project_id}");
         let mut market_url: vector<u8> = b"https://pumpsui.com/market/";
-        vector::append(&mut market_url, b"{project_id}");
+        market_url.append(b"{project_id}");
         let mut coinswap_url: vector<u8> = b"https://pumpsui.com/coinswap/";
-        vector::append(&mut coinswap_url, b"{project_id}");
+        coinswap_url.append(b"{project_id}");
         let values = vector[
-            std::string::utf8(b"Supporter Ticket"),
-            std::string::utf8(image_url),
-            std::string::utf8(project_url),
-            std::string::utf8(market_url),
-            std::string::utf8(coinswap_url),
-            std::string::utf8(b"{start}"),
-            std::string::utf8(b"{end}"),
-            std::string::utf8(b"!!!Do not visit any links in the pictures, as they may be SCAMs."),
+            b"Supporter Ticket".to_string(),
+            image_url.to_string(),
+            project_url.to_string(),
+            market_url.to_string(),
+            coinswap_url.to_string(),
+            b"{start}".to_string(),
+            b"{end}".to_string(),
+            b"!!!Do not visit any links in the pictures, as they may be SCAMs.".to_string(),
         ];
 
         let publisher = package::claim(otw, ctx);
         let mut display = display::new_with_fields<SupporterReward>(
-            &publisher, keys, values, ctx
+            &publisher,
+            keys,
+            values,
+            ctx,
         );
-        display::update_version(&mut display);
+
+        display.update_version();
         transfer::public_transfer(publisher, deployer);
         transfer::public_transfer(display, deployer);
     }
@@ -222,18 +232,20 @@ module suifund::suifund {
         total_deposit_sui: u64,
         base_fee: u64,
         project_ratio: u64,
-        deploy_ratio: u64
+        deploy_ratio: u64,
     ): u64 {
         assert!(deploy_ratio <= 5, EImproperRatio);
         let mut cal_value: u64 = mul_div(total_deposit_sui, project_ratio, 100);
         cal_value = mul_div(cal_value, deploy_ratio, 100);
-        let fee_value: u64 =  if (cal_value > base_fee) {
+        let fee_value: u64 = if (cal_value > base_fee) {
             cal_value
-        } else { base_fee };
+        } else {
+            base_fee
+        };
         fee_value
     }
 
-    public entry fun deploy(
+    public fun deploy(
         deploy_record: &mut DeployRecord,
         name: vector<u8>,
         description: vector<u8>,
@@ -251,11 +263,11 @@ module suifund::suifund {
         ratio: u64,
         amount_per_sui: u64,
         threshold_ratio: u64,
-        min_value_sui: u64, 
+        min_value_sui: u64,
         max_value_sui: u64,
         fee: &mut Coin<SUI>,
         clk: &Clock,
-        ctx: &mut TxContext
+        ctx: &mut TxContext,
     ) {
         let project_admin_cap = deploy_non_entry(
             deploy_record,
@@ -275,11 +287,11 @@ module suifund::suifund {
             ratio,
             amount_per_sui,
             threshold_ratio,
-            min_value_sui, 
+            min_value_sui,
             max_value_sui,
             fee,
             clk,
-            ctx
+            ctx,
         );
         transfer::public_transfer(project_admin_cap, ctx.sender());
     }
@@ -302,11 +314,11 @@ module suifund::suifund {
         ratio: u64,
         amount_per_sui: u64,
         threshold_ratio: u64,
-        min_value_sui: u64, 
+        min_value_sui: u64,
         max_value_sui: u64,
         fee: &mut Coin<SUI>,
         clk: &Clock,
-        ctx: &mut TxContext
+        ctx: &mut TxContext,
     ): ProjectAdminCap {
         assert!(deploy_record.version == VERSION, EVersionMismatch);
         let sender = ctx.sender();
@@ -321,14 +333,19 @@ module suifund::suifund {
             assert!(min_value_sui <= max_value_sui, EInvalidSuiValue);
         };
 
-        let deploy_fee = get_deploy_fee(total_deposit_sui, deploy_record.base_fee, ratio, deploy_record.ratio);
+        let deploy_fee = get_deploy_fee(
+            total_deposit_sui,
+            deploy_record.base_fee,
+            ratio,
+            deploy_record.ratio,
+        );
         let deploy_coin = coin::split<SUI>(fee, deploy_fee, ctx);
         balance::join<SUI>(&mut deploy_record.balance, coin::into_balance<SUI>(deploy_coin));
 
         let category = std::ascii::string(category);
 
         let total_supply = total_deposit_sui / SUI_BASE * amount_per_sui;
-        let project_name = std::ascii::string(name); 
+        let project_name = std::ascii::string(name);
         let project_record = ProjectRecord {
             id: object::new(ctx),
             version: VERSION,
@@ -368,24 +385,24 @@ module suifund::suifund {
             to: project_id,
         };
 
-        table::add<std::ascii::String, ID>(&mut deploy_record.record, project_name, project_id);
+        table::add<String, ID>(&mut deploy_record.record, project_name, project_id);
 
         if (std::ascii::length(&category) > 0) {
-            if (table::contains<std::ascii::String, Table<std::ascii::String, ID>>(&deploy_record.categorys, category)) {
-                let category_record_bm = &mut deploy_record.categorys[category];
-                table::add<std::ascii::String, ID>(category_record_bm, project_name, project_id);
+            if (deploy_record.categories.contains(category)) {
+                deploy_record.categories[category].add(project_name, project_id);
             } else {
-                let mut category_record = table::new<std::ascii::String, ID>(ctx);
-                table::add<std::ascii::String, ID>(&mut category_record, project_name, project_id);
-                table::add<std::ascii::String, Table<std::ascii::String, ID>>(&mut deploy_record.categorys, category, category_record);
+                let mut category_record = table::new(ctx);
+                category_record.add(project_name, project_id);
+                deploy_record.categories.add(category, category_record);
             };
         };
 
         transfer::share_object(project_record);
+
         emit(DeployEvent {
             project_id,
             project_name,
-            deployer: sender,
+            deployer: sender, // TODO: no need, sender is already present in every event
             deploy_fee,
         });
 
@@ -398,7 +415,7 @@ module suifund::suifund {
         project_record: &mut ProjectRecord,
         project_admin_cap: &ProjectAdminCap,
         clk: &Clock,
-        ctx: &mut TxContext
+        ctx: &mut TxContext,
     ): Coin<SUI> {
         assert!(project_record.version == VERSION, EVersionMismatch);
         assert!(project_record.begin, ENotBegin);
@@ -406,25 +423,34 @@ module suifund::suifund {
         assert!(!project_record.cancel, EProjectCanceled);
 
         let now = clock::timestamp_ms(clk);
-        let mut init_value = mul_div(project_record.current_supply, SUI_BASE, project_record.amount_per_sui);
+        let mut init_value = mul_div(
+            project_record.current_supply,
+            SUI_BASE,
+            project_record.amount_per_sui,
+        );
         init_value = init_value * project_record.ratio / 100;
-        let remain_value = get_remain_value(init_value, project_record.start_time_ms, project_record.end_time_ms, now);
+        let remain_value = get_remain_value(
+            init_value,
+            project_record.start_time_ms,
+            project_record.end_time_ms,
+            now,
+        );
         let claim_value = balance::value<SUI>(&project_record.balance) - remain_value;
 
         emit(ClaimStreamPayment {
             project_name: project_record.name,
-            sender: ctx.sender(),
+            sender: ctx.sender(), // TODO: no need, sender is already present in every event
             value: claim_value,
         });
 
         coin::take<SUI>(&mut project_record.balance, claim_value, ctx)
     }
 
-    public entry fun claim(
+    public fun claim(
         project_record: &mut ProjectRecord,
         project_admin_cap: &ProjectAdminCap,
         clk: &Clock,
-        ctx: &mut TxContext
+        ctx: &mut TxContext,
     ) {
         let claim_coin = do_claim(project_record, project_admin_cap, clk, ctx);
         transfer::public_transfer(claim_coin, ctx.sender());
@@ -432,11 +458,11 @@ module suifund::suifund {
 
     // ======= Mint functions ========
 
-    public entry fun mint(
+    public fun mint(
         project_record: &mut ProjectRecord,
         fee_sui: &mut Coin<SUI>,
         clk: &Clock,
-        ctx: &mut TxContext
+        ctx: &mut TxContext,
     ) {
         let supporter_reward = do_mint(project_record, fee_sui, clk, ctx);
         transfer::public_transfer(supporter_reward, ctx.sender());
@@ -446,7 +472,7 @@ module suifund::suifund {
         project_record: &mut ProjectRecord,
         fee_sui: &mut Coin<SUI>,
         clk: &Clock,
-        ctx: &mut TxContext
+        ctx: &mut TxContext,
     ): SupporterReward {
         let sender = ctx.sender();
         let now = clock::timestamp_ms(clk);
@@ -461,7 +487,10 @@ module suifund::suifund {
 
         if (table::contains<address, u64>(&project_record.minted_per_user, sender)) {
             let minted_value = &mut project_record.minted_per_user[sender];
-            if (project_record.max_value_sui > 0 && sui_value + *minted_value > project_record.max_value_sui) {
+            if (
+                project_record.max_value_sui > 0 &&
+                sui_value + *minted_value > project_record.max_value_sui
+            ) {
                 sui_value = project_record.max_value_sui - *minted_value;
             };
             assert!(sui_value > 0, EAlreadyMax);
@@ -470,8 +499,8 @@ module suifund::suifund {
             if (project_record.max_value_sui > 0 && sui_value > project_record.max_value_sui) {
                 sui_value = project_record.max_value_sui;
             };
-            table::add<address, u64>(&mut project_record.minted_per_user, sender, sui_value);
-            table_vec::push_back<address>(&mut project_record.participants, sender);
+            project_record.minted_per_user.add(sender, sui_value);
+            project_record.participants.push_back(sender);
         };
 
         let mut amount: u64 = mul_div(sui_value, project_record.amount_per_sui, SUI_BASE);
@@ -488,11 +517,12 @@ module suifund::suifund {
         let project_sui_value = sui_value * project_record.ratio / 100;
         let locked_sui_value = sui_value * (100 - project_record.ratio) / 100;
 
-        let project_sui = coin::into_balance<SUI>(coin::split<SUI>(fee_sui, project_sui_value, ctx));
-        balance::join<SUI>(&mut project_record.balance, project_sui);
+        project_record.balance.join(fee_sui.balance_mut().split(project_sui_value));
 
-        if (!project_record.begin && 
-            project_record.current_supply >= mul_div(project_record.total_supply, project_record.threshold_ratio, 100)
+        if (
+            !project_record.begin &&
+            project_record.current_supply >=
+            mul_div(project_record.total_supply, project_record.threshold_ratio, 100)
         ) {
             project_record.begin = true;
         };
@@ -506,7 +536,8 @@ module suifund::suifund {
             amount,
         });
 
-        let locked_sui = coin::into_balance<SUI>(coin::split<SUI>(fee_sui, locked_sui_value, ctx));
+        let locked_sui = fee_sui.balance_mut().split(locked_sui_value);
+
         new_supporter_reward(
             project_record.name,
             project_id,
@@ -515,11 +546,16 @@ module suifund::suifund {
             locked_sui,
             project_record.start_time_ms,
             project_record.end_time_ms,
-            ctx
+            ctx,
         )
     }
 
-    public fun reference_reward(reward: Coin<SUI>, sender: address, recipient: address, project_record: &ProjectRecord) {
+    public fun reference_reward(
+        reward: Coin<SUI>,
+        sender: address,
+        recipient: address,
+        project_record: &ProjectRecord,
+    ) {
         emit(ReferenceReward {
             sender,
             recipient,
@@ -531,23 +567,17 @@ module suifund::suifund {
 
     // ======= Merge functions ========
 
-    public fun do_merge(
-        sp_rwd_1: &mut SupporterReward,
-        sp_rwd_2: SupporterReward
-    ) {
+    public fun do_merge(sp_rwd_1: &mut SupporterReward, sp_rwd_2: SupporterReward) {
         assert!(sp_rwd_1.name == sp_rwd_2.name, ENotSameProject);
         assert!(sp_rwd_2.attach_df == 0, ErrorAttachDFExists);
-        
-        let SupporterReward { id, name: _, project_id: _, image: _, amount, balance, start: _, end: _, attach_df: _ } = sp_rwd_2;
+
+        let SupporterReward { id, amount, balance, .. } = sp_rwd_2;
         sp_rwd_1.amount = sp_rwd_1.amount + amount;
-        balance::join<SUI>(&mut sp_rwd_1.balance, balance);
-        object::delete(id);
+        sp_rwd_1.balance.join(balance);
+        id.delete()
     }
 
-    public entry fun merge(
-        sp_rwd_1: &mut SupporterReward,
-        sp_rwd_2: SupporterReward
-    ) {
+    public fun merge(sp_rwd_1: &mut SupporterReward, sp_rwd_2: SupporterReward) {
         do_merge(sp_rwd_1, sp_rwd_2);
     }
 
@@ -560,19 +590,19 @@ module suifund::suifund {
     public fun do_split(
         sp_rwd: &mut SupporterReward,
         amount: u64,
-        ctx: &mut TxContext
+        ctx: &mut TxContext,
     ): SupporterReward {
         assert!(0 < amount && amount < sp_rwd.amount, EInvalidAmount);
         assert!(is_splitable(sp_rwd), ENotSplitable);
 
-        let sui_value = balance::value<SUI>(&sp_rwd.balance);
+        let sui_value = sp_rwd.balance.value();
 
         let mut new_sui_value = mul_div(sui_value, amount, sp_rwd.amount);
         if (new_sui_value == 0) {
             new_sui_value = 1;
         };
 
-        let new_sui_balance = balance::split<SUI>(&mut sp_rwd.balance, new_sui_value);
+        let new_sui_balance = sp_rwd.balance.split(new_sui_value);
         sp_rwd.amount = sp_rwd.amount - amount;
 
         new_supporter_reward(
@@ -583,15 +613,11 @@ module suifund::suifund {
             new_sui_balance,
             sp_rwd.start,
             sp_rwd.end,
-            ctx
+            ctx,
         )
     }
 
-    public entry fun split(
-        sp_rwd: &mut SupporterReward,
-        amount: u64,
-        ctx: &mut TxContext
-    ) {
+    public fun split(sp_rwd: &mut SupporterReward, amount: u64, ctx: &mut TxContext) {
         let new_sp_rwd = do_split(sp_rwd, amount, ctx);
         transfer::public_transfer(new_sp_rwd, ctx.sender());
     }
@@ -601,29 +627,30 @@ module suifund::suifund {
     public fun do_burn(
         project_record: &mut ProjectRecord,
         sp_rwd: SupporterReward,
-        clk: &Clock,
-        ctx: &mut TxContext
+        clock: &Clock,
+        ctx: &mut TxContext,
     ): Coin<SUI> {
         assert!(object::id(project_record) == sp_rwd.project_id, ENotSameProject);
         assert!(project_record.version == VERSION, EVersionMismatch);
         assert!(sp_rwd.attach_df == 0, ENotBurnable);
 
         let sender = ctx.sender();
-        let now = clock::timestamp_ms(clk);
+        let now = clock.timestamp_ms();
 
         let total_value = if (project_record.cancel || !project_record.begin) {
-            balance::value<SUI>(&project_record.balance)
+            project_record.balance.value()
         } else {
             get_remain_value(
                 mul_div(project_record.current_supply, SUI_BASE, project_record.amount_per_sui),
-                project_record.start_time_ms, 
-                project_record.end_time_ms, 
-                now
-            ) * project_record.ratio / 100
+                project_record.start_time_ms,
+                project_record.end_time_ms,
+                now,
+            ) * project_record.ratio /
+            100
         };
 
         let withdraw_value = mul_div(total_value, sp_rwd.amount, project_record.current_supply);
-        let inside_value = balance::value<SUI>(&sp_rwd.balance);
+        let inside_value = sp_rwd.balance.value();
 
         project_record.current_supply = project_record.current_supply - sp_rwd.amount;
         project_record.remain = project_record.remain + sp_rwd.amount;
@@ -638,15 +665,12 @@ module suifund::suifund {
             project_id,
             amount,
             balance,
-            ..
+            ..,
         } = sp_rwd;
 
-        let withdraw_balance: Balance<SUI> = balance::split<SUI>(&mut project_record.balance, withdraw_value);
-        let mut withdraw_coin: Coin<SUI> = coin::from_balance<SUI>(withdraw_balance, ctx);
-        let inside_coin: Coin<SUI> = coin::from_balance<SUI>(balance, ctx);
-        coin::join<SUI>(&mut withdraw_coin, inside_coin);
-
-        object::delete(id);
+        let mut withdraw_balance: Balance<SUI> = project_record.balance.split(withdraw_value);
+        withdraw_balance.join(balance);
+        id.delete();
 
         emit(BurnEvent {
             project_name: name,
@@ -657,14 +681,14 @@ module suifund::suifund {
             inside_value,
         });
 
-        withdraw_coin
+        withdraw_balance.into_coin(ctx)
     }
 
-    public entry fun burn(
+    public fun burn(
         project_record: &mut ProjectRecord,
         sp_rwd: SupporterReward,
         clk: &Clock,
-        ctx: &mut TxContext
+        ctx: &mut TxContext,
     ) {
         let withdraw_coin = do_burn(project_record, sp_rwd, clk, ctx);
         transfer::public_transfer(withdraw_coin, ctx.sender());
@@ -672,66 +696,55 @@ module suifund::suifund {
 
     // ======= Native Stake functions ========
 
-    public entry fun native_stake(
+    public fun native_stake(
         wrapper: &mut SuiSystemState,
         validator_address: address,
         sp_rwd: &mut SupporterReward,
-        ctx: &mut TxContext
+        ctx: &mut TxContext,
     ) {
-        let sui_value = balance::value(&sp_rwd.balance);
-        let to_stake: Coin<SUI> = coin::take(&mut sp_rwd.balance, sui_value, ctx);
+        let to_stake: Coin<SUI> = sp_rwd.balance.withdraw_all().into_coin(ctx);
         let staked_sui = request_add_stake_non_entry(wrapper, to_stake, validator_address, ctx);
         add_df_with_attach(sp_rwd, staked_sui);
     }
 
-    public entry fun native_unstake(
+    public fun native_unstake(
         wrapper: &mut SuiSystemState,
         sp_rwd: &mut SupporterReward,
-        ctx: &mut TxContext
+        ctx: &mut TxContext,
     ) {
         // assert staked before
         let staked_sui = remove_df_with_attach<StakedSui>(sp_rwd);
         let sui = request_withdraw_stake_non_entry(wrapper, staked_sui, ctx);
-        balance::join(&mut sp_rwd.balance, sui);
+        sp_rwd.balance.join(sui);
     }
 
     // ======= Edit ProjectRecord functions ========
 
-    public entry fun add_comment(
+    public fun add_comment(
         project_record: &mut ProjectRecord,
-        reply: Option<ID>, 
-        media_link: vector<u8>, 
-        content: vector<u8>, 
+        reply: Option<ID>,
+        media_link: vector<u8>,
+        content: vector<u8>,
         clk: &Clock,
-        ctx: &mut TxContext
+        ctx: &mut TxContext,
     ) {
         let comment = comment::new_comment(reply, media_link, content, clk, ctx);
-        table_vec::push_back<Comment>(&mut project_record.thread, comment);
+        project_record.thread.push_back(comment);
     }
 
-    public entry fun like_comment(
+    public fun like_comment(project_record: &mut ProjectRecord, idx: u64, ctx: &TxContext) {
+        project_record.thread[idx].like_comment(ctx);
+    }
+
+    public fun unlike_comment(project_record: &mut ProjectRecord, idx: u64, ctx: &TxContext) {
+        project_record.thread[idx].unlike_comment(ctx);
+    }
+
+    public fun edit_description(
         project_record: &mut ProjectRecord,
-        idx: u64,
-        ctx: &TxContext
-    ) {
-        let comment_bm = &mut project_record.thread[idx];
-        comment::like_comment(comment_bm, ctx);
-    }
-
-    public entry fun unlike_comment(
-        project_record: &mut ProjectRecord,
-        idx: u64,
-        ctx: &TxContext
-    ) {
-        let comment_bm = &mut project_record.thread[idx];
-        comment::unlike_comment(comment_bm, ctx);
-    }
-
-    public entry fun edit_description(
-        project_record: &mut ProjectRecord, 
         project_admin_cap: &ProjectAdminCap,
         description: vector<u8>,
-        ctx: &TxContext
+        ctx: &TxContext,
     ) {
         check_project_cap(project_record, project_admin_cap);
         project_record.description = std::string::utf8(description);
@@ -741,13 +754,13 @@ module suifund::suifund {
         });
     }
 
-    public entry fun edit_image_url(
-        project_record: &mut ProjectRecord, 
+    public fun edit_image_url(
+        project_record: &mut ProjectRecord,
         project_admin_cap: &ProjectAdminCap,
         image_url: vector<u8>,
         deploy_record: &mut DeployRecord,
         paid: &mut Coin<SUI>,
-        ctx: &mut TxContext
+        ctx: &mut TxContext,
     ) {
         check_project_cap(project_record, project_admin_cap);
 
@@ -761,11 +774,11 @@ module suifund::suifund {
         });
     }
 
-    public entry fun edit_linktree_url(
-        project_record: &mut ProjectRecord, 
+    public fun edit_linktree_url(
+        project_record: &mut ProjectRecord,
         project_admin_cap: &ProjectAdminCap,
         linktree: vector<u8>,
-        ctx: &TxContext
+        ctx: &TxContext,
     ) {
         check_project_cap(project_record, project_admin_cap);
         project_record.linktree = url::new_unsafe_from_bytes(linktree);
@@ -775,11 +788,11 @@ module suifund::suifund {
         });
     }
 
-    public entry fun edit_x_url(
-        project_record: &mut ProjectRecord, 
+    public fun edit_x_url(
+        project_record: &mut ProjectRecord,
         project_admin_cap: &ProjectAdminCap,
         x_url: vector<u8>,
-        ctx: &TxContext
+        ctx: &TxContext,
     ) {
         check_project_cap(project_record, project_admin_cap);
         project_record.x = url::new_unsafe_from_bytes(x_url);
@@ -789,11 +802,11 @@ module suifund::suifund {
         });
     }
 
-    public entry fun edit_telegram_url(
-        project_record: &mut ProjectRecord, 
+    public fun edit_telegram_url(
+        project_record: &mut ProjectRecord,
         project_admin_cap: &ProjectAdminCap,
         telegram_url: vector<u8>,
-        ctx: &TxContext
+        ctx: &TxContext,
     ) {
         check_project_cap(project_record, project_admin_cap);
         project_record.telegram = url::new_unsafe_from_bytes(telegram_url);
@@ -803,11 +816,11 @@ module suifund::suifund {
         });
     }
 
-    public entry fun edit_discord_url(
-        project_record: &mut ProjectRecord, 
+    public fun edit_discord_url(
+        project_record: &mut ProjectRecord,
         project_admin_cap: &ProjectAdminCap,
         discord_url: vector<u8>,
-        ctx: &TxContext
+        ctx: &TxContext,
     ) {
         check_project_cap(project_record, project_admin_cap);
         project_record.discord = url::new_unsafe_from_bytes(discord_url);
@@ -817,11 +830,11 @@ module suifund::suifund {
         });
     }
 
-    public entry fun edit_website_url(
-        project_record: &mut ProjectRecord, 
+    public fun edit_website_url(
+        project_record: &mut ProjectRecord,
         project_admin_cap: &ProjectAdminCap,
         website_url: vector<u8>,
-        ctx: &TxContext
+        ctx: &TxContext,
     ) {
         check_project_cap(project_record, project_admin_cap);
         project_record.website = url::new_unsafe_from_bytes(website_url);
@@ -831,11 +844,11 @@ module suifund::suifund {
         });
     }
 
-    public entry fun edit_github_url(
-        project_record: &mut ProjectRecord, 
+    public fun edit_github_url(
+        project_record: &mut ProjectRecord,
         project_admin_cap: &ProjectAdminCap,
         github_url: vector<u8>,
-        ctx: &TxContext
+        ctx: &TxContext,
     ) {
         check_project_cap(project_record, project_admin_cap);
         project_record.github = url::new_unsafe_from_bytes(github_url);
@@ -849,15 +862,15 @@ module suifund::suifund {
         project_admin_cap: &ProjectAdminCap,
         deploy_record: &mut DeployRecord,
         project_record: &mut ProjectRecord,
-        ctx: &TxContext
+        ctx: &TxContext,
     ) {
         check_project_cap(project_record, project_admin_cap);
         cancel_project(deploy_record, project_record, ctx);
     }
 
     public fun burn_project_admin_cap(
-        project_record: &mut ProjectRecord, 
-        project_admin_cap: ProjectAdminCap
+        project_record: &mut ProjectRecord,
+        project_admin_cap: ProjectAdminCap,
     ) {
         check_project_cap(project_record, &project_admin_cap);
         assert!(project_record.cancel, ENotCanceled);
@@ -865,12 +878,12 @@ module suifund::suifund {
             id,
             to: _,
         } = project_admin_cap;
-        object::delete(id);
+        id.delete();
     }
 
     // ======= ProjectRecord Get functions ========
 
-    public fun project_name(project_record: &ProjectRecord): std::ascii::String {
+    public fun project_name(project_record: &ProjectRecord): String {
         project_record.name
     }
 
@@ -981,10 +994,10 @@ module suifund::suifund {
     // ======= Admin functions ========
     // In case of ProjectAdminCap is lost
     public fun cancel_project_by_admin(
-        _: &AdminCap, 
+        _: &AdminCap,
         deploy_record: &mut DeployRecord,
         project_record: &mut ProjectRecord,
-        ctx: &TxContext
+        ctx: &TxContext,
     ) {
         cancel_project(deploy_record, project_record, ctx);
     }
@@ -993,8 +1006,8 @@ module suifund::suifund {
     public fun take_remain(_: &AdminCap, project_record: &mut ProjectRecord, ctx: &mut TxContext) {
         assert!(project_record.cancel, EProjectNotCanceled);
         assert!(project_record.current_supply == 0, ETakeAwayNotCompleted);
-        let sui_value = balance::value<SUI>(&project_record.balance);
-        let remain = coin::take<SUI>(&mut project_record.balance, sui_value, ctx);
+        let sui_value = project_record.balance.value();
+        let remain = project_record.balance.split(sui_value).into_coin(ctx);
         transfer::public_transfer(remain, ctx.sender());
     }
 
@@ -1008,14 +1021,18 @@ module suifund::suifund {
     }
 
     #[allow(lint(self_transfer))]
-    public fun withdraw_balance(_: &AdminCap, deploy_record: &mut DeployRecord, ctx: &mut TxContext) {
-        let sui_value = balance::value<SUI>(&deploy_record.balance);
-        let coin = coin::take<SUI>(&mut deploy_record.balance, sui_value, ctx);
+    public fun withdraw_balance(
+        _: &AdminCap,
+        deploy_record: &mut DeployRecord,
+        ctx: &mut TxContext,
+    ) {
+        let sui_value = deploy_record.balance.value();
+        let coin = deploy_record.balance.split(sui_value).into_coin(ctx);
         transfer::public_transfer(coin, ctx.sender());
     }
 
     // ======= SupporterReward Get functions ========
-    public fun sr_name(sp_rwd: &SupporterReward): std::ascii::String {
+    public fun sr_name(sp_rwd: &SupporterReward): String {
         sp_rwd.name
     }
 
@@ -1047,35 +1064,41 @@ module suifund::suifund {
         sp_rwd.attach_df
     }
 
-    public fun update_image(project_record: &ProjectRecord, supporter_reward: &mut SupporterReward) {
+    public fun update_image(
+        project_record: &ProjectRecord,
+        supporter_reward: &mut SupporterReward,
+    ) {
         assert!(project_record.name == supporter_reward.name, ENotSameProject);
         supporter_reward.image = project_record.image_url;
     }
 
-    public fun check_project_cap(project_record: &ProjectRecord, project_admin_cap: &ProjectAdminCap) {
-        assert!(object::id(project_record)==project_admin_cap.to, ECapMismatch);
+    public fun check_project_cap(
+        project_record: &ProjectRecord,
+        project_admin_cap: &ProjectAdminCap,
+    ) {
+        assert!(object::id(project_record) == project_admin_cap.to, ECapMismatch);
     }
 
     public(package) fun add_df_in_project<Name: copy + drop + store, Value: store>(
-        project_record: &mut ProjectRecord, 
+        project_record: &mut ProjectRecord,
         name: Name,
-        value: Value
+        value: Value,
     ) {
         assert!(project_record.version == VERSION, EVersionMismatch);
         df::add<Name, Value>(&mut project_record.id, name, value);
     }
 
     public(package) fun remove_df_in_project<Name: copy + drop + store, Value: store>(
-        project_record: &mut ProjectRecord, 
-        name: Name
+        project_record: &mut ProjectRecord,
+        name: Name,
     ): Value {
         assert!(project_record.version == VERSION, EVersionMismatch);
         df::remove<Name, Value>(&mut project_record.id, name)
     }
 
     public(package) fun borrow_in_project<Name: copy + drop + store, Value: store>(
-        project_record: &ProjectRecord, 
-        name: Name
+        project_record: &ProjectRecord,
+        name: Name,
     ): &Value {
         assert!(project_record.version == VERSION, EVersionMismatch);
         df::borrow<Name, Value>(&project_record.id, name)
@@ -1083,57 +1106,50 @@ module suifund::suifund {
 
     public(package) fun borrow_mut_in_project<Name: copy + drop + store, Value: store>(
         project_record: &mut ProjectRecord,
-        name: Name
+        name: Name,
     ): &mut Value {
         assert!(project_record.version == VERSION, EVersionMismatch);
         df::borrow_mut<Name, Value>(&mut project_record.id, name)
     }
 
     public(package) fun exists_in_project<Name: copy + drop + store>(
-        project_record: &ProjectRecord, 
-        name: Name
+        project_record: &ProjectRecord,
+        name: Name,
     ): bool {
         assert!(project_record.version == VERSION, EVersionMismatch);
         df::exists_<Name>(&project_record.id, name)
     }
 
-    fun add_df_with_attach<Value: store>(
-        sp_rwd: &mut SupporterReward,
-        value: Value
-    ) {
+    fun add_df_with_attach<Value: store>(sp_rwd: &mut SupporterReward, value: Value) {
         let name = type_name::into_string(type_name::get_with_original_ids<Value>());
         assert!(sp_rwd.attach_df == 0);
         sp_rwd.attach_df = sp_rwd.attach_df + 1;
         df::add(&mut sp_rwd.id, name, value);
     }
 
-    fun remove_df_with_attach<Value: store>(
-        sp_rwd: &mut SupporterReward
-    ): Value {
+    fun remove_df_with_attach<Value: store>(sp_rwd: &mut SupporterReward): Value {
         let name = type_name::into_string(type_name::get_with_original_ids<Value>());
         // assert attach_df > 0
         sp_rwd.attach_df = sp_rwd.attach_df - 1;
-        let value: Value = df::remove<std::ascii::String, Value>(&mut sp_rwd.id, name);
+        let value: Value = df::remove<String, Value>(&mut sp_rwd.id, name);
         value
     }
 
     #[allow(unused_function)]
-    fun exists_df<Value: store>(
-        sp_rwd: &SupporterReward
-    ): bool {
+    fun exists_df<Value: store>(sp_rwd: &SupporterReward): bool {
         let name = type_name::into_string(type_name::get_with_original_ids<Value>());
-        df::exists_with_type<std::ascii::String, Value>(&sp_rwd.id, name)
+        df::exists_with_type<String, Value>(&sp_rwd.id, name)
     }
 
     fun new_supporter_reward(
-        name: std::ascii::String,
+        name: String,
         project_id: ID,
         image: Url,
         amount: u64,
         balance: Balance<SUI>,
         start: u64,
         end: u64,
-        ctx: &mut TxContext
+        ctx: &mut TxContext,
     ): SupporterReward {
         SupporterReward {
             id: object::new(ctx),
@@ -1150,57 +1166,61 @@ module suifund::suifund {
 
     fun cancel_project(
         deploy_record: &mut DeployRecord,
-        project_record: &mut ProjectRecord, 
-        ctx: &TxContext
+        project_record: &mut ProjectRecord,
+        ctx: &TxContext,
     ) {
         assert!(!project_record.begin, EAlreadyBegin);
         project_record.cancel = true;
 
-        let project_id = table::remove<std::ascii::String, ID>(&mut deploy_record.record, project_record.name);
+        let project_id = table::remove<String, ID>(
+            &mut deploy_record.record,
+            project_record.name,
+        );
         if (std::ascii::length(&project_record.category) > 0) {
-            let category_record_bm = &mut deploy_record.categorys[project_record.category];
-            table::remove<std::ascii::String, ID>(category_record_bm, project_record.name);
+            let category_record_bm = &mut deploy_record.categories[project_record.category];
+            table::remove<String, ID>(category_record_bm, project_record.name);
             if (table::is_empty(category_record_bm)) {
-                let category_record = table::remove<std::ascii::String, Table<std::ascii::String, ID>>(&mut deploy_record.categorys, project_record.category);
-                table::destroy_empty<std::ascii::String, ID>(category_record);
+                let category_record = table::remove<String, Table<String, ID>>(
+                    &mut deploy_record.categories,
+                    project_record.category,
+                );
+                table::destroy_empty<String, ID>(category_record);
             };
         };
 
-        emit(
-            CancelProjectEvent {
-                project_name: project_record.name,
-                project_id,
-                sender: ctx.sender(),
-            }
-        );
+        emit(CancelProjectEvent {
+            project_name: project_record.name,
+            project_id,
+            sender: ctx.sender(),
+        });
     }
 
     // ========= Test Functions =========
 
     #[test_only]
     public fun init_for_testing(ctx: &mut TxContext) {
-        init(SUIFUND{}, ctx);
+        init(SUIFUND {}, ctx);
     }
 
     #[test_only]
     public fun new_sp_rwd_for_testing(
-        name: std::ascii::String,
+        name: String,
         project_id: ID,
         image: Url,
         amount: u64,
         balance: Balance<SUI>,
         start: u64,
         end: u64,
-        ctx: &mut TxContext
+        ctx: &mut TxContext,
     ): SupporterReward {
         new_supporter_reward(name, project_id, image, amount, balance, start, end, ctx)
     }
 
     #[test_only]
     public fun drop_sp_rwd_for_testing(sp_rwd: SupporterReward) {
-        let SupporterReward { id, name: _, project_id: _, image: _, amount: _, balance, start: _, end: _, attach_df: _ } = sp_rwd;
-        balance::destroy_for_testing(balance);
-        object::delete(id);
+        let SupporterReward { id, balance, .. } = sp_rwd;
+        balance.destroy_for_testing();
+        id.delete();
     }
 
     #[test_only]
@@ -1223,7 +1243,7 @@ module suifund::suifund {
         threshold_ratio: u64,
         min_value_sui: u64,
         max_value_sui: u64,
-        ctx: &mut TxContext
+        ctx: &mut TxContext,
     ): ProjectRecord {
         let total_supply = total_deposit_sui / SUI_BASE * amount_per_sui;
         ProjectRecord {
@@ -1241,7 +1261,7 @@ module suifund::suifund {
             website: url::new_unsafe_from_bytes(website),
             github: url::new_unsafe_from_bytes(github),
             cancel: false,
-            balance: balance::zero<SUI>(),
+            balance: balance::zero(),
             ratio,
             start_time_ms,
             end_time_ms: start_time_ms + time_interval,
@@ -1264,24 +1284,20 @@ module suifund::suifund {
     public fun drop_project_record_for_testing(project_record: ProjectRecord) {
         let ProjectRecord {
             id,
-            ..,
             balance,
+            mut thread,
             participants,
             minted_per_user,
-            mut thread,
+            ..,
         } = project_record;
 
-        balance::destroy_for_testing<SUI>(balance);
-        table_vec::drop<address>(participants);
-        table::drop<address, u64>(minted_per_user);
+        balance.destroy_for_testing();
+        participants.drop();
+        minted_per_user.drop();
 
-        while (table_vec::length<Comment>(&thread) > 0) {
-            let comment = table_vec::pop_back<Comment>(&mut thread);
-            comment::drop_comment(comment);
-        };
-        table_vec::destroy_empty<Comment>(thread);
-        object::delete(id);
+        thread.length().do!(|_| thread.pop_back().drop_comment());
+
+        thread.destroy_empty();
+        id.delete();
     }
-
 }
-
