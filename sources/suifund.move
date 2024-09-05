@@ -59,7 +59,7 @@ module suifund::suifund {
         id: UID,
         version: u64,
         record: Table<String, ID>,
-        categories: Table<String, Table<String, ID>>,
+        categorys: Table<String, Table<String, ID>>,  // Typo, categories
         balance: Balance<SUI>,
         base_fee: u64,
         ratio: u64,
@@ -174,7 +174,7 @@ module suifund::suifund {
             id: object::new(ctx),
             version: VERSION,
             record: table::new(ctx),
-            categories: table::new(ctx),
+            categorys: table::new(ctx),
             balance: balance::zero<SUI>(),
             base_fee: BASE_FEE,
             ratio: 1,
@@ -391,12 +391,12 @@ module suifund::suifund {
         deploy_record.record.add(project_name, project_id);
 
         if (category.length() > 0) {
-            if (deploy_record.categories.contains(category)) {
-                deploy_record.categories[category].add(project_name, project_id);
+            if (deploy_record.categorys.contains(category)) {
+                deploy_record.categorys[category].add(project_name, project_id);
             } else {
                 let mut category_record = table::new(ctx);
                 category_record.add(project_name, project_id);
-                deploy_record.categories.add(category, category_record);
+                deploy_record.categorys.add(category, category_record);
             };
         };
 
@@ -1185,10 +1185,10 @@ module suifund::suifund {
 
         let project_id = deploy_record.record.remove(project_record.name);
         if (project_record.category.length() > 0) {
-            let category_record_bm = &mut deploy_record.categories[project_record.category];
+            let category_record_bm = &mut deploy_record.categorys[project_record.category];
             category_record_bm.remove(project_record.name);
             if (category_record_bm.is_empty()) {
-                deploy_record.categories.remove(project_record.category).destroy_empty();
+                deploy_record.categorys.remove(project_record.category).destroy_empty();
             };
         };
 
